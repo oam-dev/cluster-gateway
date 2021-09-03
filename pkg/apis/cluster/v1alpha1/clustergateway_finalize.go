@@ -13,25 +13,25 @@ import (
 	contextutil "sigs.k8s.io/apiserver-runtime/pkg/util/context"
 )
 
-var _ resource.SubResource = &ClusterExtensionFinalize{}
-var _ resourcerest.Getter = &ClusterExtensionFinalize{}
-var _ resourcerest.Updater = &ClusterExtensionFinalize{}
+var _ resource.SubResource = &ClusterGatewayFinalize{}
+var _ resourcerest.Getter = &ClusterGatewayFinalize{}
+var _ resourcerest.Updater = &ClusterGatewayFinalize{}
 
-// ClusterExtensionFinalize
+// ClusterGatewayFinalize
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type ClusterExtensionFinalize struct {
+type ClusterGatewayFinalize struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
-func (c *ClusterExtensionFinalize) SubResourceName() string {
+func (c *ClusterGatewayFinalize) SubResourceName() string {
 	return "finalize"
 }
 
-func (c *ClusterExtensionFinalize) New() runtime.Object {
-	return &ClusterExtensionFinalize{}
+func (c *ClusterGatewayFinalize) New() runtime.Object {
+	return &ClusterGatewayFinalize{}
 }
 
-func (c *ClusterExtensionFinalize) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+func (c *ClusterGatewayFinalize) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	parentStorage, ok := contextutil.GetParentStorage(ctx)
 	if !ok {
 		return nil, fmt.Errorf("no parent storage found in the context")
@@ -40,7 +40,7 @@ func (c *ClusterExtensionFinalize) Get(ctx context.Context, name string, options
 	return parentStorage.Get(ctx, name, options)
 }
 
-func (c *ClusterExtensionFinalize) Update(
+func (c *ClusterGatewayFinalize) Update(
 	ctx context.Context,
 	name string,
 	objInfo rest.UpdatedObjectInfo,

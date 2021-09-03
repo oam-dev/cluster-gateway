@@ -23,22 +23,22 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-func ValidateClusterExtension(c *ClusterExtension) field.ErrorList {
+func ValidateClusterGateway(c *ClusterGateway) field.ErrorList {
 	var errs field.ErrorList
-	errs = append(errs, ValidateClusterExtensionSpec(&c.Spec, field.NewPath("spec"))...)
+	errs = append(errs, ValidateClusterGatewaySpec(&c.Spec, field.NewPath("spec"))...)
 	return errs
 }
 
-func ValidateClusterExtensionSpec(c *ClusterExtensionSpec, path *field.Path) field.ErrorList {
+func ValidateClusterGatewaySpec(c *ClusterGatewaySpec, path *field.Path) field.ErrorList {
 	var errs field.ErrorList
 	if len(c.Provider) == 0 {
 		errs = append(errs, field.Required(path.Child("provider"), "should set provider"))
 	}
-	errs = append(errs, ValidateClusterExtensionSpecAccess(&c.Access, path.Child("access"))...)
+	errs = append(errs, ValidateClusterGatewaySpecAccess(&c.Access, path.Child("access"))...)
 	return errs
 }
 
-func ValidateClusterExtensionSpecAccess(c *ClusterAccess, path *field.Path) field.ErrorList {
+func ValidateClusterGatewaySpecAccess(c *ClusterAccess, path *field.Path) field.ErrorList {
 	var errs field.ErrorList
 	if len(c.Endpoint) == 0 {
 		errs = append(errs, field.Required(path.Child("endpoint"), "should provide cluster endpoint"))
@@ -52,7 +52,7 @@ func ValidateClusterExtensionSpecAccess(c *ClusterAccess, path *field.Path) fiel
 		errs = append(errs, field.Invalid(path.Child("endpoint"), c.Endpoint, "scheme must be https"))
 	}
 	if c.Credential != nil {
-		errs = append(errs, ValidateClusterExtensionSpecAccessCredential(c.Credential, path.Child("credential"))...)
+		errs = append(errs, ValidateClusterGatewaySpecAccessCredential(c.Credential, path.Child("credential"))...)
 	}
 	if len(c.CABundle) == 0 && (c.Insecure == nil || *c.Insecure == false) {
 		errs = append(errs, field.Required(path.Child("caBundle"), "required for non-insecure endpoint"))
@@ -60,7 +60,7 @@ func ValidateClusterExtensionSpecAccess(c *ClusterAccess, path *field.Path) fiel
 	return errs
 }
 
-func ValidateClusterExtensionSpecAccessCredential(c *ClusterAccessCredential, path *field.Path) field.ErrorList {
+func ValidateClusterGatewaySpecAccessCredential(c *ClusterAccessCredential, path *field.Path) field.ErrorList {
 	var errs field.ErrorList
 	supportedCredTypes := sets.NewString(string(CredentialTypeServiceAccountToken), string(CredentialTypeX509Certificate))
 	if !supportedCredTypes.Has(string(c.Type)) {

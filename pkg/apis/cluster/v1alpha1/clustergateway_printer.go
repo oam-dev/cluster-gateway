@@ -8,8 +8,8 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource/resourcestrategy"
 )
 
-var _ resourcestrategy.TableConverter = &ClusterExtension{}
-var _ resourcestrategy.TableConverter = &ClusterExtensionList{}
+var _ resourcestrategy.TableConverter = &ClusterGateway{}
+var _ resourcestrategy.TableConverter = &ClusterGatewayList{}
 
 var (
 	definitions = []metav1.TableColumnDefinition{
@@ -20,24 +20,24 @@ var (
 	}
 )
 
-func (in *ClusterExtension) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+func (in *ClusterGateway) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
 	return &metav1.Table{
 		ColumnDefinitions: definitions,
-		Rows:              []metav1.TableRow{printClusterExtension(in)},
+		Rows:              []metav1.TableRow{printClusterGateway(in)},
 	}, nil
 }
 
-func (in *ClusterExtensionList) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
+func (in *ClusterGatewayList) ConvertToTable(ctx context.Context, tableOptions runtime.Object) (*metav1.Table, error) {
 	t := &metav1.Table{
 		ColumnDefinitions: definitions,
 	}
 	for _, c := range in.Items {
-		t.Rows = append(t.Rows, printClusterExtension(&c))
+		t.Rows = append(t.Rows, printClusterGateway(&c))
 	}
 	return t, nil
 }
 
-func printClusterExtension(c *ClusterExtension) metav1.TableRow {
+func printClusterGateway(c *ClusterGateway) metav1.TableRow {
 	name := c.Name
 	provideType := c.Spec.Provider
 	credType := "<none>"

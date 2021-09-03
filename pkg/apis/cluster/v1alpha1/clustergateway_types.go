@@ -28,7 +28,7 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //
-// ClusterExtension is an extension model for ManagedCluster which implements
+// ClusterGateway is an extension model for ManagedCluster which implements
 // the Tier-II cluster model based on OCM's original abstraction of
 // ManagedCluster. The Tier-II cluster model should be highly protected under
 // RBAC policies and only the admin shall have the access to view the content
@@ -36,25 +36,25 @@ import (
 //
 // Documentation: https://yuque.antfin.com/antcloud-paas/ar858o/tku0n9#6433b698
 // +k8s:openapi-gen=true
-type ClusterExtension struct {
+type ClusterGateway struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterExtensionSpec   `json:"spec,omitempty"`
-	Status ClusterExtensionStatus `json:"status,omitempty"`
+	Spec   ClusterGatewaySpec   `json:"spec,omitempty"`
+	Status ClusterGatewayStatus `json:"status,omitempty"`
 }
 
-// ClusterExtensionList
+// ClusterGatewayList
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type ClusterExtensionList struct {
+type ClusterGatewayList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	Items []ClusterExtension `json:"items"`
+	Items []ClusterGateway `json:"items"`
 }
 
-// ClusterExtensionSpec defines the desired state of ClusterExtension
-type ClusterExtensionSpec struct {
+// ClusterGatewaySpec defines the desired state of ClusterGateway
+type ClusterGatewaySpec struct {
 	Provider  string        `json:"provider"`
 	Access    ClusterAccess `json:"access"`
 	Finalized *bool         `json:"finalized,omitempty"`
@@ -97,75 +97,75 @@ type X509 struct {
 	PrivateKey  []byte `json:"privateKey"`
 }
 
-var _ resource.Object = &ClusterExtension{}
-var _ resourcestrategy.Validater = &ClusterExtension{}
+var _ resource.Object = &ClusterGateway{}
+var _ resourcestrategy.Validater = &ClusterGateway{}
 
-func (in *ClusterExtension) GetObjectMeta() *metav1.ObjectMeta {
+func (in *ClusterGateway) GetObjectMeta() *metav1.ObjectMeta {
 	return &in.ObjectMeta
 }
 
-func (in *ClusterExtension) NamespaceScoped() bool {
+func (in *ClusterGateway) NamespaceScoped() bool {
 	return false
 }
 
-func (in *ClusterExtension) New() runtime.Object {
-	return &ClusterExtension{}
+func (in *ClusterGateway) New() runtime.Object {
+	return &ClusterGateway{}
 }
 
-func (in *ClusterExtension) NewList() runtime.Object {
-	return &ClusterExtensionList{}
+func (in *ClusterGateway) NewList() runtime.Object {
+	return &ClusterGatewayList{}
 }
 
-func (in *ClusterExtension) GetGroupVersionResource() schema.GroupVersionResource {
+func (in *ClusterGateway) GetGroupVersionResource() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "core.oam.dev",
 		Version:  "v1alpha1",
-		Resource: "clusterextensions",
+		Resource: "clustergateways",
 	}
 }
 
-func (in *ClusterExtension) IsStorageVersion() bool {
+func (in *ClusterGateway) IsStorageVersion() bool {
 	return true
 }
 
-func (in *ClusterExtension) Validate(ctx context.Context) field.ErrorList {
-	return ValidateClusterExtension(in)
+func (in *ClusterGateway) Validate(ctx context.Context) field.ErrorList {
+	return ValidateClusterGateway(in)
 }
 
-var _ resource.ObjectList = &ClusterExtensionList{}
+var _ resource.ObjectList = &ClusterGatewayList{}
 
-func (in *ClusterExtensionList) GetListMeta() *metav1.ListMeta {
+func (in *ClusterGatewayList) GetListMeta() *metav1.ListMeta {
 	return &in.ListMeta
 }
 
-// ClusterExtensionStatus defines the observed state of ClusterExtension
-type ClusterExtensionStatus struct {
+// ClusterGatewayStatus defines the observed state of ClusterGateway
+type ClusterGatewayStatus struct {
 	Healthy bool `json:"healthy,omitempty"`
 }
 
-func (in ClusterExtensionStatus) SubResourceName() string {
+func (in ClusterGatewayStatus) SubResourceName() string {
 	return "status"
 }
 
-// ClusterExtension implements ObjectWithStatusSubResource interface.
-var _ resource.ObjectWithStatusSubResource = &ClusterExtension{}
+// ClusterGateway implements ObjectWithStatusSubResource interface.
+var _ resource.ObjectWithStatusSubResource = &ClusterGateway{}
 
-func (in *ClusterExtension) GetStatus() resource.StatusSubResource {
+func (in *ClusterGateway) GetStatus() resource.StatusSubResource {
 	return in.Status
 }
 
-// ClusterExtensionStatus{} implements StatusSubResource interface.
-var _ resource.StatusSubResource = &ClusterExtensionStatus{}
+// ClusterGatewayStatus{} implements StatusSubResource interface.
+var _ resource.StatusSubResource = &ClusterGatewayStatus{}
 
-func (in ClusterExtensionStatus) CopyTo(parent resource.ObjectWithStatusSubResource) {
-	parent.(*ClusterExtension).Status = in
+func (in ClusterGatewayStatus) CopyTo(parent resource.ObjectWithStatusSubResource) {
+	parent.(*ClusterGateway).Status = in
 }
 
-var _ resource.ObjectWithArbitrarySubResource = &ClusterExtension{}
+var _ resource.ObjectWithArbitrarySubResource = &ClusterGateway{}
 
-func (in *ClusterExtension) GetArbitrarySubResources() []resource.ArbitrarySubResource {
+func (in *ClusterGateway) GetArbitrarySubResources() []resource.ArbitrarySubResource {
 	return []resource.ArbitrarySubResource{
-		&ClusterExtensionProxy{},
-		&ClusterExtensionFinalize{},
+		&ClusterGatewayProxy{},
+		&ClusterGatewayFinalize{},
 	}
 }

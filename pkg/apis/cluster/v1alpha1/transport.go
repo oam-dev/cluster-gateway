@@ -9,7 +9,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 )
 
-func NewConfigFromCluster(c *ClusterExtension) (*restclient.Config, error) {
+func NewConfigFromCluster(c *ClusterGateway) (*restclient.Config, error) {
 	cfg := &restclient.Config{}
 	cfg.Host = c.Spec.Access.Endpoint
 	cfg.CAData = c.Spec.Access.CABundle
@@ -35,7 +35,7 @@ func NewConfigFromCluster(c *ClusterExtension) (*restclient.Config, error) {
 	return cfg, nil
 }
 
-func GetEndpointURL(c *ClusterExtension) (*url.URL, error) {
+func GetEndpointURL(c *ClusterGateway) (*url.URL, error) {
 	urlAddr, err := url.Parse(c.Spec.Access.Endpoint)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed parsing url from cluster %s invalid value %s", c.Name, c.Spec.Access.Endpoint)

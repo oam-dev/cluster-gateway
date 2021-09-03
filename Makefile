@@ -96,12 +96,3 @@ else
 KUSTOMIZE=$(shell which kustomize)
 endif
 
-images:
-	 docker build -t reg.docker.alibaba-inc.com/ocmpaas/sigmaboss-syncer:${VERSION} -f cmd/sigmaboss/Dockerfile  .
-	 docker build -t reg.docker.alibaba-inc.com/ocmpaas/cluster-extension-agent:${VERSION} -f cmd/agent/Dockerfile  .
-	 docker build -t reg.docker.alibaba-inc.com/ocmpaas/cluster-extension-apiserver:${VERSION} -f cmd/apiserver/Dockerfile  .
-
-push-images: images
-	docker push reg.docker.alibaba-inc.com/ocmpaas/sigmaboss-syncer:${VERSION}
-	docker push reg.docker.alibaba-inc.com/ocmpaas/cluster-extension-agent:${VERSION}
-	docker push reg.docker.alibaba-inc.com/ocmpaas/cluster-extension-apiserver:${VERSION}
