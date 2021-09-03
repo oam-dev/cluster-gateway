@@ -1,0 +1,54 @@
+name: Go
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch: {}
+  pull_request:
+    branches:
+      - master
+
+env:
+  # Common versions
+  GO_VERSION: '1.16'
+  GOLANGCI_VERSION: 'v1.38'
+  KIND_VERSION: 'v0.7.0'
+
+jobs:
+
+  detect-noop:
+    runs-on: ubuntu-20.04
+    outputs:
+      noop: ${{ steps.noop.outputs.should_skip }}
+    steps:
+      - name: Detect No-op Changes
+        id: noop
+        uses: fkirc/skip-duplicate-actions@v3.3.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          paths_ignore: '["**.md", "**.mdx", "**.png", "**.jpg"]'
+          do_not_skip: '["workflow_dispatch", "schedule", "push"]'
+          concurrent_skipping: false
+
+  test:
+    runs-on: ubuntu-20.04
+    needs: detect-noop
+    if: needs.detect-noop.outputs.noop != 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@v2
+        with:
+          path: .work/pkg
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+
+      - name: Run Make test
+        run: make test
+
