@@ -53,3 +53,5 @@ var AddToScheme = func(scheme *runtime.Scheme) error {
 
 	return nil
 }
+
+var SchemeGroupVersion = schema.GroupVersion{Group: "core.oam.dev", Version: "v1alpha1"}

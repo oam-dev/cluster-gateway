@@ -96,3 +96,9 @@ else
 KUSTOMIZE=$(shell which kustomize)
 endif
 
+client-gen:
+	apiserver-runtime-gen \
+ 	--module github.com/oam-dev/cluster-gateway \
+ 	-g client-gen \
+ 	--versions=github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1 \
+ 	--install-generators=false
