@@ -17,8 +17,8 @@ package fake
 
 import (
 	clientset "github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned"
-	corev1alpha1 "github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
-	fakecorev1alpha1 "github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned/typed/cluster/v1alpha1/fake"
+	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned/typed/cluster/v1alpha1"
+	fakeclusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned/typed/cluster/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -73,7 +73,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// CoreV1alpha1 retrieves the CoreV1alpha1Client
-func (c *Clientset) CoreV1alpha1() corev1alpha1.CoreV1alpha1Interface {
-	return &fakecorev1alpha1.FakeCoreV1alpha1{Fake: &c.Fake}
+// ClusterV1alpha1 retrieves the ClusterV1alpha1Client
+func (c *Clientset) ClusterV1alpha1() clusterv1alpha1.ClusterV1alpha1Interface {
+	return &fakeclusterv1alpha1.FakeClusterV1alpha1{Fake: &c.Fake}
 }

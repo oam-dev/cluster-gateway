@@ -54,7 +54,7 @@ type clusterGateways struct {
 }
 
 // newClusterGateways returns a ClusterGateways
-func newClusterGateways(c *CoreV1alpha1Client, namespace string) *clusterGateways {
+func newClusterGateways(c *ClusterV1alpha1Client, namespace string) *clusterGateways {
 	return &clusterGateways{
 		client: c.RESTClient(),
 		ns:     namespace,

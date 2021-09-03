@@ -29,13 +29,13 @@ import (
 
 // FakeClusterGateways implements ClusterGatewayInterface
 type FakeClusterGateways struct {
-	Fake *FakeCoreV1alpha1
+	Fake *FakeClusterV1alpha1
 	ns   string
 }
 
-var clustergatewaysResource = schema.GroupVersionResource{Group: "core.oam.dev", Version: "v1alpha1", Resource: "clustergateways"}
+var clustergatewaysResource = schema.GroupVersionResource{Group: "cluster.core.oam.dev", Version: "v1alpha1", Resource: "clustergateways"}
 
-var clustergatewaysKind = schema.GroupVersionKind{Group: "core.oam.dev", Version: "v1alpha1", Kind: "ClusterGateway"}
+var clustergatewaysKind = schema.GroupVersionKind{Group: "cluster.core.oam.dev", Version: "v1alpha1", Kind: "ClusterGateway"}
 
 // Get takes name of the clusterGateway, and returns the corresponding clusterGateway object, and an error if there is any.
 func (c *FakeClusterGateways) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ClusterGateway, err error) {

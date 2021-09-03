@@ -20,5 +20,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=cluster-extension/pkg/apis/cluster
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=core.oam.dev
+// +groupName=cluster.core.oam.dev
 package v1alpha1 // import "cluster-extension/pkg/apis/cluster/v1alpha1"
