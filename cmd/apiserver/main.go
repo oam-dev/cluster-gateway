@@ -5,7 +5,7 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 
 	// +kubebuilder:scaffold:resource-imports
-	clusterv1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1"
+	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 )
@@ -17,7 +17,7 @@ func main() {
 
 	err := builder.APIServer.
 		// +kubebuilder:scaffold:resource-register
-		WithResource(&clusterv1.ClusterExtension{}).
+		WithResource(&clusterv1alpha1.ClusterExtension{}).
 		WithLocalDebugExtension().
 		ExposeLoopbackClientConfig().
 		ExposeLoopbackAuthorizer().

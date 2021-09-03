@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,21 +34,21 @@ func init() {
 var AddToScheme = func(scheme *runtime.Scheme) error {
 	metav1.AddToGroupVersion(scheme, schema.GroupVersion{
 		Group:   "core.oam.dev",
-		Version: "v1",
+		Version: "v1alpha1",
 	})
 	// +kubebuilder:scaffold:install
 
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Group:   "core.oam.dev",
-		Version: "v1",
+		Version: "v1alpha1",
 	}, &ClusterExtension{}, &ClusterExtensionList{})
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Group:   "core.oam.dev",
-		Version: "v1",
+		Version: "v1alpha1",
 	}, &ClusterExtensionProxyOptions{})
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Group:   "core.oam.dev",
-		Version: "v1",
+		Version: "v1alpha1",
 	}, &ClusterExtensionFinalize{})
 
 	return nil

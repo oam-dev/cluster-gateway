@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v1alpha1
 
 import (
 	"context"
@@ -68,7 +68,9 @@ type ClusterAccess struct {
 	CABundle []byte `json:"caBundle,omitempty"`
 	// Insecure indicates the cluster should be access'd w/o verifying
 	// CA certificate at client-side.
-	Insecure   *bool                    `json:"insecure,omitempty"`
+	Insecure *bool `json:"insecure,omitempty"`
+	// ClusterAccessCredential holds authentication configuration for
+	// accessing the target cluster.
 	Credential *ClusterAccessCredential `json:"credential,omitempty"`
 }
 
@@ -117,7 +119,7 @@ func (in *ClusterExtension) NewList() runtime.Object {
 func (in *ClusterExtension) GetGroupVersionResource() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "core.oam.dev",
-		Version:  "v1",
+		Version:  "v1alpha1",
 		Resource: "clusterextensions",
 	}
 }
