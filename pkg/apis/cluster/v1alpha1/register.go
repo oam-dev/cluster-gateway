@@ -41,15 +41,15 @@ var AddToScheme = func(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Group:   "core.oam.dev",
 		Version: "v1alpha1",
-	}, &ClusterExtension{}, &ClusterExtensionList{})
+	}, &ClusterGateway{}, &ClusterGatewayList{})
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Group:   "core.oam.dev",
 		Version: "v1alpha1",
-	}, &ClusterExtensionProxyOptions{})
+	}, &ClusterGatewayProxyOptions{})
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Group:   "core.oam.dev",
 		Version: "v1alpha1",
-	}, &ClusterExtensionFinalize{})
+	}, &ClusterGatewayFinalize{})
 
 	return nil
 }

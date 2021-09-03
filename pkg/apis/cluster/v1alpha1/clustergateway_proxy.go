@@ -42,19 +42,19 @@ import (
 	contextutil "sigs.k8s.io/apiserver-runtime/pkg/util/context"
 )
 
-var _ resource.SubResource = &ClusterExtensionProxy{}
-var _ rest.Storage = &ClusterExtensionProxy{}
-var _ resourcerest.Connecter = &ClusterExtensionProxy{}
+var _ resource.SubResource = &ClusterGatewayProxy{}
+var _ rest.Storage = &ClusterGatewayProxy{}
+var _ resourcerest.Connecter = &ClusterGatewayProxy{}
 
 var proxyMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 
-// ClusterExtensionProxy is a subresource for ClusterExtension which allows user to proxy
+// ClusterGatewayProxy is a subresource for ClusterGateway which allows user to proxy
 // kubernetes resource requests to the managed cluster.
-type ClusterExtensionProxy struct {
+type ClusterGatewayProxy struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type ClusterExtensionProxyOptions struct {
+type ClusterGatewayProxyOptions struct {
 	metav1.TypeMeta
 
 	// Path is the target api path of the proxy request.
@@ -62,16 +62,16 @@ type ClusterExtensionProxyOptions struct {
 	Path string `json:"path"`
 }
 
-func (c *ClusterExtensionProxy) SubResourceName() string {
+func (c *ClusterGatewayProxy) SubResourceName() string {
 	return "proxy"
 }
 
-func (c *ClusterExtensionProxy) New() runtime.Object {
-	return &ClusterExtensionProxyOptions{}
+func (c *ClusterGatewayProxy) New() runtime.Object {
+	return &ClusterGatewayProxyOptions{}
 }
 
-func (c *ClusterExtensionProxy) Connect(ctx context.Context, id string, options runtime.Object, r rest.Responder) (http.Handler, error) {
-	proxyOpts, ok := options.(*ClusterExtensionProxyOptions)
+func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options runtime.Object, r rest.Responder) (http.Handler, error) {
+	proxyOpts, ok := options.(*ClusterGatewayProxyOptions)
 	if !ok {
 		return nil, fmt.Errorf("invalid options object: %#v", options)
 	}
@@ -99,10 +99,10 @@ func (c *ClusterExtensionProxy) Connect(ctx context.Context, id string, options 
 	proxyReqInfo.Verb = reqInfo.Verb
 
 	return &proxyHandler{
-		parentName:       id,
-		path:             proxyOpts.Path,
-		clusterExtension: parentObj.(*ClusterExtension),
-		responder:        r,
+		parentName:     id,
+		path:           proxyOpts.Path,
+		clusterGateway: parentObj.(*ClusterGateway),
+		responder:      r,
 		finishFunc: func(code int) {
 			metrics.RecordProxiedRequestsByResource(proxyReqInfo.Resource, proxyReqInfo.Verb, code)
 			metrics.RecordProxiedRequestsByCluster(id, code)
@@ -110,17 +110,17 @@ func (c *ClusterExtensionProxy) Connect(ctx context.Context, id string, options 
 	}, nil
 }
 
-func (c *ClusterExtensionProxy) NewConnectOptions() (runtime.Object, bool, string) {
-	return &ClusterExtensionProxyOptions{}, true, "path"
+func (c *ClusterGatewayProxy) NewConnectOptions() (runtime.Object, bool, string) {
+	return &ClusterGatewayProxyOptions{}, true, "path"
 }
 
-func (c *ClusterExtensionProxy) ConnectMethods() []string {
+func (c *ClusterGatewayProxy) ConnectMethods() []string {
 	return proxyMethods
 }
 
-var _ resource.QueryParameterObject = &ClusterExtensionProxyOptions{}
+var _ resource.QueryParameterObject = &ClusterGatewayProxyOptions{}
 
-func (in *ClusterExtensionProxyOptions) ConvertFromUrlValues(values *url.Values) error {
+func (in *ClusterGatewayProxyOptions) ConvertFromUrlValues(values *url.Values) error {
 	in.Path = values.Get("path")
 	return nil
 }
@@ -128,15 +128,15 @@ func (in *ClusterExtensionProxyOptions) ConvertFromUrlValues(values *url.Values)
 var _ http.Handler = &proxyHandler{}
 
 type proxyHandler struct {
-	parentName       string
-	path             string
-	clusterExtension *ClusterExtension
-	responder        rest.Responder
-	finishFunc       func(code int)
+	parentName     string
+	path           string
+	clusterGateway *ClusterGateway
+	responder      rest.Responder
+	finishFunc     func(code int)
 }
 
 func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	cluster := p.clusterExtension
+	cluster := p.clusterGateway
 	if cluster.Spec.Access.Credential == nil {
 		responsewriters.InternalError(writer, request, fmt.Errorf("proxying cluster %s not support due to lacking credentials", cluster.Name))
 		return
