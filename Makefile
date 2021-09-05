@@ -21,11 +21,18 @@ test: generate fmt vet manifests
 
 # Build manager binary
 manager: generate fmt vet
-	go build -o bin/manager main.go
+	go build -o bin/manager ./cmd/apiserver/main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
-	go run ./main.go
+	go run ./cmd/apiserver/main.go
+
+local-run:
+	go run ./cmd/apiserver/main.go \
+	--standalone-debug-mode=true \
+    --bind-address=127.0.0.1 \
+    --etcd-servers=127.0.0.1:2379 \
+    --secure-port=9443
 
 # Install CRDs into a cluster
 install: manifests kustomize
