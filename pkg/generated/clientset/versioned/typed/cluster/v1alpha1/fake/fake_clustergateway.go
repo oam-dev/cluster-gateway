@@ -30,7 +30,6 @@ import (
 // FakeClusterGateways implements ClusterGatewayInterface
 type FakeClusterGateways struct {
 	Fake *FakeClusterV1alpha1
-	ns   string
 }
 
 var clustergatewaysResource = schema.GroupVersionResource{Group: "cluster.core.oam.dev", Version: "v1alpha1", Resource: "clustergateways"}
@@ -40,8 +39,7 @@ var clustergatewaysKind = schema.GroupVersionKind{Group: "cluster.core.oam.dev",
 // Get takes name of the clusterGateway, and returns the corresponding clusterGateway object, and an error if there is any.
 func (c *FakeClusterGateways) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ClusterGateway, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(clustergatewaysResource, c.ns, name), &v1alpha1.ClusterGateway{})
-
+		Invokes(testing.NewRootGetAction(clustergatewaysResource, name), &v1alpha1.ClusterGateway{})
 	if obj == nil {
 		return nil, err
 	}
@@ -51,8 +49,7 @@ func (c *FakeClusterGateways) Get(ctx context.Context, name string, options v1.G
 // List takes label and field selectors, and returns the list of ClusterGateways that match those selectors.
 func (c *FakeClusterGateways) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ClusterGatewayList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(clustergatewaysResource, clustergatewaysKind, c.ns, opts), &v1alpha1.ClusterGatewayList{})
-
+		Invokes(testing.NewRootListAction(clustergatewaysResource, clustergatewaysKind, opts), &v1alpha1.ClusterGatewayList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -73,15 +70,13 @@ func (c *FakeClusterGateways) List(ctx context.Context, opts v1.ListOptions) (re
 // Watch returns a watch.Interface that watches the requested clusterGateways.
 func (c *FakeClusterGateways) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(clustergatewaysResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(clustergatewaysResource, opts))
 }
 
 // Create takes the representation of a clusterGateway and creates it.  Returns the server's representation of the clusterGateway, and an error, if there is any.
 func (c *FakeClusterGateways) Create(ctx context.Context, clusterGateway *v1alpha1.ClusterGateway, opts v1.CreateOptions) (result *v1alpha1.ClusterGateway, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(clustergatewaysResource, c.ns, clusterGateway), &v1alpha1.ClusterGateway{})
-
+		Invokes(testing.NewRootCreateAction(clustergatewaysResource, clusterGateway), &v1alpha1.ClusterGateway{})
 	if obj == nil {
 		return nil, err
 	}
@@ -91,8 +86,7 @@ func (c *FakeClusterGateways) Create(ctx context.Context, clusterGateway *v1alph
 // Update takes the representation of a clusterGateway and updates it. Returns the server's representation of the clusterGateway, and an error, if there is any.
 func (c *FakeClusterGateways) Update(ctx context.Context, clusterGateway *v1alpha1.ClusterGateway, opts v1.UpdateOptions) (result *v1alpha1.ClusterGateway, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(clustergatewaysResource, c.ns, clusterGateway), &v1alpha1.ClusterGateway{})
-
+		Invokes(testing.NewRootUpdateAction(clustergatewaysResource, clusterGateway), &v1alpha1.ClusterGateway{})
 	if obj == nil {
 		return nil, err
 	}
@@ -103,8 +97,7 @@ func (c *FakeClusterGateways) Update(ctx context.Context, clusterGateway *v1alph
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeClusterGateways) UpdateStatus(ctx context.Context, clusterGateway *v1alpha1.ClusterGateway, opts v1.UpdateOptions) (*v1alpha1.ClusterGateway, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(clustergatewaysResource, "status", c.ns, clusterGateway), &v1alpha1.ClusterGateway{})
-
+		Invokes(testing.NewRootUpdateSubresourceAction(clustergatewaysResource, "status", clusterGateway), &v1alpha1.ClusterGateway{})
 	if obj == nil {
 		return nil, err
 	}
@@ -114,14 +107,13 @@ func (c *FakeClusterGateways) UpdateStatus(ctx context.Context, clusterGateway *
 // Delete takes name of the clusterGateway and deletes it. Returns an error if one occurs.
 func (c *FakeClusterGateways) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(clustergatewaysResource, c.ns, name), &v1alpha1.ClusterGateway{})
-
+		Invokes(testing.NewRootDeleteAction(clustergatewaysResource, name), &v1alpha1.ClusterGateway{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeClusterGateways) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(clustergatewaysResource, c.ns, listOpts)
+	action := testing.NewRootDeleteCollectionAction(clustergatewaysResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.ClusterGatewayList{})
 	return err
@@ -130,8 +122,7 @@ func (c *FakeClusterGateways) DeleteCollection(ctx context.Context, opts v1.Dele
 // Patch applies the patch and returns the patched clusterGateway.
 func (c *FakeClusterGateways) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ClusterGateway, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(clustergatewaysResource, c.ns, name, pt, data, subresources...), &v1alpha1.ClusterGateway{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(clustergatewaysResource, name, pt, data, subresources...), &v1alpha1.ClusterGateway{})
 	if obj == nil {
 		return nil, err
 	}

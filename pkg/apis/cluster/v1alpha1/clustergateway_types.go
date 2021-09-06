@@ -26,6 +26,7 @@ import (
 )
 
 // +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 //
 // ClusterGateway is an extension model for ManagedCluster which implements

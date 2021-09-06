@@ -14,6 +14,44 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	"net/http"
+
+	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	"k8s.io/client-go/rest"
+)
+
 type ClusterGatewayExpansion interface {
-	// TODO: gateway proxy utils
+	ForCluster(clusterName string) rest.Interface
+}
+
+func (c *clusterGateways) ForCluster(clusterName string) rest.Interface {
+	restClient := c.client.(*rest.RESTClient)
+	shallowCopiedClient := *restClient
+	shallowCopiedHTTPClient := *(restClient.Client)
+	shallowCopiedClient.Client = &shallowCopiedHTTPClient
+	shallowCopiedClient.Client.Transport = gatewayAPIPrefixPrepender{
+		clusterName: clusterName,
+		delegate:    restClient.Client.Transport,
+	}
+	return &shallowCopiedClient
+}
+
+var _ http.RoundTripper = &gatewayAPIPrefixPrepender{}
+
+type gatewayAPIPrefixPrepender struct {
+	clusterName string
+	delegate    http.RoundTripper
+}
+
+func (p gatewayAPIPrefixPrepender) RoundTrip(req *http.Request) (*http.Response, error) {
+	originalPath := req.URL.Path
+	prefix := "/apis/" +
+		v1alpha1.SchemeGroupVersion.Group +
+		"/" +
+		v1alpha1.SchemeGroupVersion.Version +
+		"/clustergateways/"
+	fullPath := prefix + p.clusterName + "/proxy/" + originalPath
+	req.URL.Path = fullPath
+	return p.delegate.RoundTrip(req)
 }

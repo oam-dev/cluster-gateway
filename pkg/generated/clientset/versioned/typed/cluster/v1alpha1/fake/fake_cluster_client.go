@@ -25,8 +25,8 @@ type FakeClusterV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeClusterV1alpha1) ClusterGateways(namespace string) v1alpha1.ClusterGatewayInterface {
-	return &FakeClusterGateways{c, namespace}
+func (c *FakeClusterV1alpha1) ClusterGateways() v1alpha1.ClusterGatewayInterface {
+	return &FakeClusterGateways{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -104,6 +104,7 @@ KUSTOMIZE=$(shell which kustomize)
 endif
 
 client-gen:
+	go install k8s.io/code-generator/cmd/client-gen@v0.21.2
 	apiserver-runtime-gen \
  	--module github.com/oam-dev/cluster-gateway \
  	-g client-gen \
