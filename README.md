@@ -15,7 +15,7 @@ $go run ./cmd/apiserver \
 #### Resources
 
 ```yaml
-apiVersion: "core.oam.dev/v1alpha1"
+apiVersion: "cluster.core.oam.dev/v1alpha1"
 kind: "ClusterGateway"
 metadata:
   name: <..>
