@@ -44,7 +44,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			testClusterClient := gatewayClient.ClusterV1alpha1().ClusterGateways().ForCluster("test")
+			testClusterClient := gatewayClient.ClusterV1alpha1().ClusterGateways().RESTClient("test")
 			resp, err := testClusterClient.Get().AbsPath("/healthz").DoRaw(context.TODO())
 			if err != nil {
 				return err

@@ -15,9 +15,37 @@ limitations under the License.
 package fake
 
 import (
+	"net/http"
+
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (c *FakeClusterGateways) ForCluster(clusterName string) rest.Interface {
 	panic("not implemented")
+}
+
+func (c *FakeClusterGateways) RoundTripperForCluster(clusterName string) http.RoundTripper {
+	panic("implement me")
+}
+
+func (c *FakeClusterGateways) RoundTripperForClusterFromContext() http.RoundTripper {
+	panic("implement me")
+}
+
+func (c *FakeClusterGateways) RoundTripperForClusterFromContextWrapper(tripper http.RoundTripper) http.RoundTripper {
+	panic("implement me")
+}
+
+func (c *FakeClusterGateways) RESTClient(clusterName string) rest.Interface {
+	panic("implement me")
+}
+
+func (c *FakeClusterGateways) GetKubernetesClient(clusterName string) kubernetes.Interface {
+	panic("implement me")
+}
+
+func (c *FakeClusterGateways) GetControllerRuntimeClient(clusterName string, options client.Options) (client.Client, error) {
+	panic("implement me")
 }

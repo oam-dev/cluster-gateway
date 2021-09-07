@@ -76,7 +76,7 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 		return nil, fmt.Errorf("invalid options object: %#v", options)
 	}
 
-	parentStorage, ok := contextutil.GetParentStorage(ctx)
+	parentStorage, ok := contextutil.GetParentStorageGetter(ctx)
 	if !ok {
 		return nil, fmt.Errorf("no parent storage found")
 	}

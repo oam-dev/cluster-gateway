@@ -15,33 +15,72 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+	"k8s.io/client-go/kubernetes"
 	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	contextutil "github.com/oam-dev/cluster-gateway/pkg/util/context"
 	"k8s.io/client-go/rest"
 )
 
 type ClusterGatewayExpansion interface {
-	ForCluster(clusterName string) rest.Interface
+	RESTClient(clusterName string) rest.Interface
+	GetKubernetesClient(clusterName string) kubernetes.Interface
+	GetControllerRuntimeClient(clusterName string, options client.Options) (client.Client, error)
+	RoundTripperForCluster(clusterName string) http.RoundTripper
+	RoundTripperForClusterFromContext() http.RoundTripper
+	RoundTripperForClusterFromContextWrapper(http.RoundTripper) http.RoundTripper
 }
 
-func (c *clusterGateways) ForCluster(clusterName string) rest.Interface {
+func (c *clusterGateways) RESTClient(clusterName string) rest.Interface {
 	restClient := c.client.(*rest.RESTClient)
 	shallowCopiedClient := *restClient
 	shallowCopiedHTTPClient := *(restClient.Client)
 	shallowCopiedClient.Client = &shallowCopiedHTTPClient
-	shallowCopiedClient.Client.Transport = gatewayAPIPrefixPrepender{
-		clusterName: clusterName,
-		delegate:    restClient.Client.Transport,
-	}
+	shallowCopiedClient.Client.Transport = c.RoundTripperForCluster(clusterName)
 	return &shallowCopiedClient
+}
+
+func (c *clusterGateways) RoundTripperForCluster(clusterName string) http.RoundTripper {
+	return c.getRoundTripper(func(ctx context.Context) string {
+		return clusterName
+	})
+}
+
+func (c *clusterGateways) GetKubernetesClient(clusterName string) kubernetes.Interface {
+	return kubernetes.New(c.RESTClient(clusterName))
+}
+
+func (c *clusterGateways) GetControllerRuntimeClient(clusterName string, options client.Options) (client.Client, error) {
+	return client.New(&rest.Config{
+		Host:          c.client.Verb("").URL().String(),
+		WrapTransport: c.RoundTripperForClusterFromContextWrapper,
+	}, options)
+}
+
+func (c *clusterGateways) RoundTripperForClusterFromContext() http.RoundTripper {
+	return c.getRoundTripper(contextutil.GetClusterName)
+}
+
+func (c *clusterGateways) RoundTripperForClusterFromContextWrapper(http.RoundTripper) http.RoundTripper {
+	return c.RoundTripperForClusterFromContext()
+}
+
+func (c *clusterGateways) getRoundTripper(clusterNameGetter func(ctx context.Context) string) http.RoundTripper {
+	restClient := c.client.(*rest.RESTClient)
+	return gatewayAPIPrefixPrepender{
+		clusterNameGetter: clusterNameGetter,
+		delegate:          restClient.Client.Transport,
+	}
 }
 
 var _ http.RoundTripper = &gatewayAPIPrefixPrepender{}
 
 type gatewayAPIPrefixPrepender struct {
-	clusterName string
-	delegate    http.RoundTripper
+	clusterNameGetter func(ctx context.Context) string
+	delegate          http.RoundTripper
 }
 
 func (p gatewayAPIPrefixPrepender) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -51,7 +90,7 @@ func (p gatewayAPIPrefixPrepender) RoundTrip(req *http.Request) (*http.Response,
 		"/" +
 		v1alpha1.SchemeGroupVersion.Version +
 		"/clustergateways/"
-	fullPath := prefix + p.clusterName + "/proxy/" + originalPath
+	fullPath := prefix + p.clusterNameGetter(req.Context()) + "/proxy/" + originalPath
 	req.URL.Path = fullPath
 	return p.delegate.RoundTrip(req)
 }

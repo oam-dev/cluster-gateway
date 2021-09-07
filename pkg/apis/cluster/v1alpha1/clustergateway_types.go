@@ -56,9 +56,8 @@ type ClusterGatewayList struct {
 
 // ClusterGatewaySpec defines the desired state of ClusterGateway
 type ClusterGatewaySpec struct {
-	Provider  string        `json:"provider"`
-	Access    ClusterAccess `json:"access"`
-	Finalized *bool         `json:"finalized,omitempty"`
+	Provider string        `json:"provider"`
+	Access   ClusterAccess `json:"access"`
 }
 
 type ClusterAccess struct {
@@ -144,29 +143,10 @@ type ClusterGatewayStatus struct {
 	Healthy bool `json:"healthy,omitempty"`
 }
 
-func (in ClusterGatewayStatus) SubResourceName() string {
-	return "status"
-}
-
-// ClusterGateway implements ObjectWithStatusSubResource interface.
-var _ resource.ObjectWithStatusSubResource = &ClusterGateway{}
-
-func (in *ClusterGateway) GetStatus() resource.StatusSubResource {
-	return in.Status
-}
-
-// ClusterGatewayStatus{} implements StatusSubResource interface.
-var _ resource.StatusSubResource = &ClusterGatewayStatus{}
-
-func (in ClusterGatewayStatus) CopyTo(parent resource.ObjectWithStatusSubResource) {
-	parent.(*ClusterGateway).Status = in
-}
-
 var _ resource.ObjectWithArbitrarySubResource = &ClusterGateway{}
 
 func (in *ClusterGateway) GetArbitrarySubResources() []resource.ArbitrarySubResource {
 	return []resource.ArbitrarySubResource{
 		&ClusterGatewayProxy{},
-		&ClusterGatewayFinalize{},
 	}
 }

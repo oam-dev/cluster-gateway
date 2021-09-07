@@ -46,10 +46,6 @@ var AddToScheme = func(scheme *runtime.Scheme) error {
 		Group:   "core.oam.dev",
 		Version: "v1alpha1",
 	}, &ClusterGatewayProxyOptions{})
-	scheme.AddKnownTypes(schema.GroupVersion{
-		Group:   "core.oam.dev",
-		Version: "v1alpha1",
-	}, &ClusterGatewayFinalize{})
 
 	return nil
 }
