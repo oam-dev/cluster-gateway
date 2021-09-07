@@ -118,7 +118,7 @@ func (in *ClusterGateway) NewList() runtime.Object {
 
 func (in *ClusterGateway) GetGroupVersionResource() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
-		Group:    "core.oam.dev",
+		Group:    "cluster.core.oam.dev",
 		Version:  "v1alpha1",
 		Resource: "clustergateways",
 	}

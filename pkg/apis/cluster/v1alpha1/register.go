@@ -33,21 +33,21 @@ func init() {
 
 var AddToScheme = func(scheme *runtime.Scheme) error {
 	metav1.AddToGroupVersion(scheme, schema.GroupVersion{
-		Group:   "core.oam.dev",
+		Group:   "cluster.core.oam.dev",
 		Version: "v1alpha1",
 	})
 	// +kubebuilder:scaffold:install
 
 	scheme.AddKnownTypes(schema.GroupVersion{
-		Group:   "core.oam.dev",
+		Group:   "cluster.core.oam.dev",
 		Version: "v1alpha1",
 	}, &ClusterGateway{}, &ClusterGatewayList{})
 	scheme.AddKnownTypes(schema.GroupVersion{
-		Group:   "core.oam.dev",
+		Group:   "cluster.core.oam.dev",
 		Version: "v1alpha1",
 	}, &ClusterGatewayProxyOptions{})
 
 	return nil
 }
 
-var SchemeGroupVersion = schema.GroupVersion{Group: "core.oam.dev", Version: "v1alpha1"}
+var SchemeGroupVersion = schema.GroupVersion{Group: "cluster.core.oam.dev", Version: "v1alpha1"}

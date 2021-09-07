@@ -137,7 +137,7 @@ spec:
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
-  name: v1alpha1.core.oam.dev
+  name: v1alpha1.cluster.core.oam.dev
   labels:
     api: cluster-extension-apiserver
     apiserver: "true"
