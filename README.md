@@ -143,7 +143,7 @@ metadata:
     apiserver: "true"
 spec:
   version: v1alpha1
-  group: core.oam.dev
+  group: cluster.core.oam.dev
   groupPriorityMinimum: 2000
   service:
     name: gateway-service
