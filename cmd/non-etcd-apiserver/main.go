@@ -42,9 +42,6 @@ func main() {
 			if err := config.Validate(); err != nil {
 				panic(err)
 			}
-			if len(options.RecommendedOptions.CoreAPI.CoreAPIKubeconfigPath) == 0 {
-				panic("must specify --kubeconfig")
-			}
 			return options
 		}).
 		Build()
