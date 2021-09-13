@@ -21,7 +21,7 @@ RUN GOPROXY="https://goproxy.cn/,direct" \
     GO111MODULE=on \
     go build \
         -a -o apiserver \
-        -tags vela \
+        -tags secret \
         cmd/non-etcd-apiserver/main.go
 
 # Use distroless as minimal base image to package the manager binary

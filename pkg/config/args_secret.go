@@ -1,4 +1,4 @@
-// +build vela
+// +build secret
 
 package config
 
