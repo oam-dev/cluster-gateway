@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 )
@@ -31,12 +33,12 @@ const (
 var _ rest.Getter = &ClusterGateway{}
 var _ rest.Lister = &ClusterGateway{}
 
+var initClient sync.Once
+var client kubernetes.Interface
+
 func (in *ClusterGateway) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	c, err := kubernetes.NewForConfig(loopback.GetLoopbackMasterClientConfig())
-	if err != nil {
-		return nil, err
-	}
-	clusterSecret, err := c.CoreV1().Secrets(config.SecretNamespace).Get(ctx, name, metav1.GetOptions{})
+	initClientOnce()
+	clusterSecret, err := client.CoreV1().Secrets(config.SecretNamespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +49,7 @@ func (in *ClusterGateway) List(ctx context.Context, options *internalversion.Lis
 	if options.Watch {
 		return nil, fmt.Errorf("watch not supported")
 	}
-	c, err := kubernetes.NewForConfig(loopback.GetLoopbackMasterClientConfig())
-	if err != nil {
-		return nil, err
-	}
+	initClientOnce()
 	requirement, err := labels.NewRequirement(
 		LabelKeyClusterCredentialType,
 		selection.Exists,
@@ -58,11 +57,12 @@ func (in *ClusterGateway) List(ctx context.Context, options *internalversion.Lis
 	if err != nil {
 		return nil, err
 	}
-	clusterSecrets, err := c.CoreV1().Secrets(config.SecretNamespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.NewSelector().
-			Add(*requirement).
-			String(),
-	})
+	clusterSecrets, err := client.
+		CoreV1().
+		Secrets(config.SecretNamespace).
+		List(ctx, metav1.ListOptions{
+			LabelSelector: labels.NewSelector().Add(*requirement).String(),
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,8 @@ func (in *ClusterGateway) List(ctx context.Context, options *internalversion.Lis
 	for _, secret := range clusterSecrets.Items {
 		gw, err := convert(&secret)
 		if err != nil {
-			return nil, err
+			klog.Errorf("failed converting secret to gateway: %v", err)
+			continue
 		}
 		list.Items = append(list.Items, *gw)
 	}
@@ -88,6 +89,16 @@ func (in *ClusterGateway) ConvertToTable(ctx context.Context, object runtime.Obj
 	default:
 		return nil, fmt.Errorf("unknown type %T", object)
 	}
+}
+
+func initClientOnce() {
+	initClient.Do(func() {
+		c, err := kubernetes.NewForConfig(loopback.GetLoopbackMasterClientConfig())
+		if err != nil {
+			panic(err)
+		}
+		client = c
+	})
 }
 
 func convert(secret *v1.Secret) (*ClusterGateway, error) {
