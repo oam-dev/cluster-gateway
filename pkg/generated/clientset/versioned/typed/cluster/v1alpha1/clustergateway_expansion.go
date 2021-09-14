@@ -16,19 +16,22 @@ package v1alpha1
 
 import (
 	"context"
-	"k8s.io/client-go/kubernetes"
 	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 	contextutil "github.com/oam-dev/cluster-gateway/pkg/util/context"
+
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ClusterGatewayExpansion interface {
 	RESTClient(clusterName string) rest.Interface
+
 	GetKubernetesClient(clusterName string) kubernetes.Interface
 	GetControllerRuntimeClient(clusterName string, options client.Options) (client.Client, error)
+
 	RoundTripperForCluster(clusterName string) http.RoundTripper
 	RoundTripperForClusterFromContext() http.RoundTripper
 	RoundTripperForClusterFromContextWrapper(http.RoundTripper) http.RoundTripper
@@ -53,7 +56,7 @@ func (c *clusterGateways) GetKubernetesClient(clusterName string) kubernetes.Int
 	return kubernetes.New(c.RESTClient(clusterName))
 }
 
-func (c *clusterGateways) GetControllerRuntimeClient(clusterName string, options client.Options) (client.Client, error) {
+func (c *clusterGateways) GetControllerRuntimeClient(options client.Options) (client.Client, error) {
 	return client.New(&rest.Config{
 		Host:          c.client.Verb("").URL().String(),
 		WrapTransport: c.RoundTripperForClusterFromContextWrapper,
