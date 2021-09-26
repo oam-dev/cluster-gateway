@@ -37,7 +37,7 @@ status: { }
 ##### Local Run
 
 ```shell
-$go run -tags vela ./cmd/non-etcd-apiserver \
+$go run -tags secret ./cmd/non-etcd-apiserver \
   --bind-address=127.0.0.1 \
   --secure-port=9443 \
   --kubeconfig=$KUBECONFIG \
