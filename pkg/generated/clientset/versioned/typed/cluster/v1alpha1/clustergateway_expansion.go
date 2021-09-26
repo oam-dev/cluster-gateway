@@ -18,6 +18,8 @@ import (
 	"context"
 	"net/http"
 
+	"k8s.io/client-go/transport"
+
 	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 	contextutil "github.com/oam-dev/cluster-gateway/pkg/util/context"
 
@@ -56,10 +58,10 @@ func (c *clusterGateways) GetKubernetesClient(clusterName string) kubernetes.Int
 	return kubernetes.New(c.RESTClient(clusterName))
 }
 
-func (c *clusterGateways) GetControllerRuntimeClient(options client.Options) (client.Client, error) {
+func (c *clusterGateways) GetControllerRuntimeClient(clusterName string, options client.Options) (client.Client, error) {
 	return client.New(&rest.Config{
 		Host:          c.client.Verb("").URL().String(),
-		WrapTransport: c.RoundTripperForClusterFromContextWrapper,
+		WrapTransport: c.RoundTripperForClusterWrapperGenerator(clusterName),
 	}, options)
 }
 
@@ -69,6 +71,12 @@ func (c *clusterGateways) RoundTripperForClusterFromContext() http.RoundTripper 
 
 func (c *clusterGateways) RoundTripperForClusterFromContextWrapper(http.RoundTripper) http.RoundTripper {
 	return c.RoundTripperForClusterFromContext()
+}
+
+func (c *clusterGateways) RoundTripperForClusterWrapperGenerator(clusterName string) transport.WrapperFunc {
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return c.getRoundTripper(func(_ context.Context) string { return clusterName })
+	}
 }
 
 func (c *clusterGateways) getRoundTripper(clusterNameGetter func(ctx context.Context) string) http.RoundTripper {
