@@ -25,11 +25,6 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 )
 
-const (
-	// Label keys
-	LabelKeyClusterCredentialType = "cluster.core.oam.dev/cluster-credential-type"
-)
-
 var _ rest.Getter = &ClusterGateway{}
 var _ rest.Lister = &ClusterGateway{}
 

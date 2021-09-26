@@ -77,6 +77,8 @@ type ClusterAccess struct {
 type CredentialType string
 
 const (
+	// LabelKeyClusterCredentialType describes the credential type in object label field
+	LabelKeyClusterCredentialType = "cluster.core.oam.dev/cluster-credential-type"
 	// CredentialTypeServiceAccountToken means the cluster is accessible via
 	// ServiceAccountToken.
 	CredentialTypeServiceAccountToken CredentialType = "ServiceAccountToken"
