@@ -1,4 +1,5 @@
-// +build vela
+// +build secret
+
 /*
 Copyright 2021 The KubeVela Authors.
 
