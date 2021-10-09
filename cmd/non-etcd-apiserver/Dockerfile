@@ -39,7 +39,7 @@ RUN GOPROXY="https://goproxy.cn/,direct" \
 FROM alpine:3.13
 
 WORKDIR /
-COPY --from=builder /workspace/apiserver .
-COPY --from=builder /workspace/patch .
+COPY --from=builder /workspace/apiserver /
+COPY --from=builder /workspace/patch /
 
 ENTRYPOINT ["/apiserver"]

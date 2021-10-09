@@ -28,6 +28,8 @@ import (
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 )
 
 const (
@@ -85,7 +87,9 @@ func main() {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&APIServiceName, FlagAPIServiceName, "", "specify the target APIService to patch caBundle")
+	gv := v1alpha1.SchemeGroupVersion
+	apiServiceName := gv.Version + "." + gv.Group
+	cmd.Flags().StringVar(&APIServiceName, FlagAPIServiceName, apiServiceName, "specify the target APIService to patch caBundle")
 	cmd.Flags().StringVar(&secretName, FlagSecretName, "", "specify the source secret name")
 	cmd.Flags().StringVar(&secretNamespace, FlagSecretNamespace, "", "specify the source secret namespace")
 	cmd.Flags().StringVar(&secretCABundleKey, FlagSecretCABundleKey, "ca", "specify the CABundle key in source secret")
