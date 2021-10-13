@@ -58,7 +58,7 @@ func main() {
 	var secretNamespace string
 	var secretCABundleKey string
 	cmd := &cobra.Command{
-		Use: "patch",
+		Use:   "patch",
 		Short: "patch APIService CABundle from given secret",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: buildSchemeOrDie()})
