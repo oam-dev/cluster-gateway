@@ -19,6 +19,7 @@ package main
 import (
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
+	"github.com/oam-dev/cluster-gateway/pkg/options"
 
 	"k8s.io/klog"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
@@ -50,6 +51,10 @@ func main() {
 		klog.Fatal(err)
 	}
 	config.AddFlags(cmd.Flags())
+	cmd.Flags().BoolVarP(
+		&options.OCMIntegration, "ocm-integration", "", false,
+		"Enabling OCM integration, reading cluster CA and api endpoint from managed "+
+			"cluster.")
 	if err := cmd.Execute(); err != nil {
 		klog.Fatal(err)
 	}
