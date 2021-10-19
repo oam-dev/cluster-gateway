@@ -1,5 +1,3 @@
-// +build secret
-
 package config
 
 import (

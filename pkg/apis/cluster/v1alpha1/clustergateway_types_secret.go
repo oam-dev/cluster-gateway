@@ -1,5 +1,3 @@
-// +build secret
-
 package v1alpha1
 
 import (
