@@ -1,0 +1,17 @@
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.cluster.core.oam.dev
+  labels:
+    api: cluster-extension-apiserver
+    apiserver: "true"
+spec:
+  version: v1alpha1
+  group: cluster.core.oam.dev
+  groupPriorityMinimum: 2000
+  service:
+    name: gateway-service
+    namespace:  {{ .Release.Namespace }}
+    port: 9443
+  versionPriority: 10
+  insecureSkipTLSVerify: true

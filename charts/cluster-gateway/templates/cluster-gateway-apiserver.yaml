@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-deployment
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: gateway
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      serviceAccount: cluster-gateway
+      containers:
+        - name: gateway
+          image: {{ .Values.image }}
+          command:
+            - ./apiserver
+            - --secure-port=9443
+            - --secret-namespace={{ .Values.secretNamespace }}
+            # TODO: certificate rotation, otherwise the self-signed will expire in 1 year
+          ports:
+            - containerPort: 9443
