@@ -25,7 +25,7 @@ api-gateway solution:
 ## Image
 
 ```shell
-$ docker pull oamdev/cluster-gateway:1.1.3 # Or other newer tags
+$ docker pull oamdev/cluster-gateway:v1.1.4 # Or other newer tags
 ```
 
 ## Documentation
