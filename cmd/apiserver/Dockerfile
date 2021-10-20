@@ -22,7 +22,7 @@ RUN GOPROXY="https://goproxy.cn/,direct" \
     GO111MODULE=on \
     go build \
         -a -o apiserver \
-        cmd/non-etcd-apiserver/main.go
+        cmd/apiserver/main.go
 
 RUN GOPROXY="https://goproxy.cn/,direct" \
     CGO_ENABLED=0 \
