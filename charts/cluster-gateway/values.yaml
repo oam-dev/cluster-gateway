@@ -1,0 +1,6 @@
+# Image of the cluster-gateway instances
+image: oamdev/cluster-gateway:v1.1.4
+# Number of replicas
+replicas: 3
+# A secured namespace for reading cluster secrets
+secretNamespace: open-cluster-management-credentials
