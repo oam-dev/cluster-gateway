@@ -17,10 +17,8 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
@@ -32,11 +30,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	apiproxy "k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/transport"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource/resourcerest"
 	contextutil "sigs.k8s.io/apiserver-runtime/pkg/util/context"
@@ -153,10 +153,15 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 	host, _, _ := net.SplitHostPort(urlAddr.Host)
+	const apiPrefix = "/apis/cluster.core.oam.dev/v1alpha1/clustergateways/"
+	const apiSuffix = "/proxy"
+	path := strings.TrimPrefix(request.URL.Path, apiPrefix+p.parentName+apiSuffix)
 	newReq.Host = host
 	newReq.Header.Add("Host", host)
+	newReq.URL.Path = path
+	newReq.URL.RawQuery = request.URL.RawQuery
+	newReq.RequestURI = newReq.URL.RequestURI()
 
-	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: urlAddr.Scheme, Host: urlAddr.Host})
 	cfg, err := NewConfigFromCluster(cluster)
 	if err != nil {
 		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating cluster proxy client config %s", cluster.Name))
@@ -167,23 +172,52 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating cluster proxy client %s", cluster.Name))
 		return
 	}
+	proxy := apiproxy.NewUpgradeAwareHandler(
+		&url.URL{
+			Scheme:   urlAddr.Scheme,
+			Path:     path,
+			Host:     urlAddr.Host,
+			RawQuery: request.URL.RawQuery,
+		},
+		rt,
+		false,
+		false,
+		nil)
 
 	const defaultFlushInterval = 200 * time.Millisecond
+	transportCfg, err := cfg.TransportConfig()
+	if err != nil {
+		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating transport config %s", cluster.Name))
+		return
+	}
+	tlsConfig, err := transport.TLSConfigFor(transportCfg)
+	if err != nil {
+		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating tls config %s", cluster.Name))
+		return
+	}
+	upgrader, err := transport.HTTPWrappersForConfig(transportCfg, apiproxy.MirrorRequest)
+	if err != nil {
+		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating upgrader client %s", cluster.Name))
+		return
+	}
+	upgrading := utilnet.SetOldTransportDefaults(&http.Transport{
+		TLSClientConfig: tlsConfig,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 0,
+		}).DialContext,
+	})
+	proxy.UpgradeTransport = apiproxy.NewUpgradeRequestRoundTripper(
+		upgrading,
+		RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			newReq := utilnet.CloneRequest(req)
+			return upgrader.RoundTrip(newReq)
+		}))
 	proxy.Transport = rt
 	proxy.FlushInterval = defaultFlushInterval
-	proxy.ErrorLog = log.New(noSuppressPanicError{}, "", log.LstdFlags)
-	if p.responder != nil {
-		// if an optional error interceptor/responder was provided wire it
-		// the custom responder might be used for providing a unified error reporting
-		// or supporting retry mechanisms by not sending non-fatal errors to the clients
-		proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
-			p.responder.Error(err)
-		}
-	}
-	proxy.ModifyResponse = func(r *http.Response) error {
-		p.finishFunc(r.StatusCode)
-		return nil
-	}
+	proxy.Responder = ErrorResponderFunc(func(w http.ResponseWriter, req *http.Request, err error) {
+		p.responder.Error(err)
+	})
 	proxy.ServeHTTP(writer, newReq)
 }
 
@@ -197,4 +231,20 @@ func (noSuppressPanicError) Write(p []byte) (n int, err error) {
 		return len(p), nil
 	}
 	return os.Stderr.Write(p)
+}
+
+// +k8s:deepcopy-gen=false
+type RoundTripperFunc func(req *http.Request) (*http.Response, error)
+
+func (fn RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
+
+var _ apiproxy.ErrorResponder = ErrorResponderFunc(nil)
+
+// +k8s:deepcopy-gen=false
+type ErrorResponderFunc func(w http.ResponseWriter, req *http.Request, err error)
+
+func (e ErrorResponderFunc) Error(w http.ResponseWriter, req *http.Request, err error) {
+	e(w, req, err)
 }
