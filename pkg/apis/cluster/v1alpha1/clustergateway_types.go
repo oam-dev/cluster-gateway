@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	"context"
+	"github.com/oam-dev/cluster-gateway/pkg/config"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,14 +78,17 @@ type ClusterAccess struct {
 type CredentialType string
 
 const (
-	// LabelKeyClusterCredentialType describes the credential type in object label field
-	LabelKeyClusterCredentialType = "cluster.core.oam.dev/cluster-credential-type"
 	// CredentialTypeServiceAccountToken means the cluster is accessible via
 	// ServiceAccountToken.
 	CredentialTypeServiceAccountToken CredentialType = "ServiceAccountToken"
 	// CredentialTypeX509Certificate means the cluster is accessible via
 	// X509 certificate and key.
 	CredentialTypeX509Certificate CredentialType = "X509Certificate"
+)
+
+var (
+	// LabelKeyClusterCredentialType describes the credential type in object label field
+	LabelKeyClusterCredentialType = config.MetaApiGroupName + "/cluster-credential-type"
 )
 
 type ClusterAccessCredential struct {
@@ -120,9 +124,9 @@ func (in *ClusterGateway) NewList() runtime.Object {
 
 func (in *ClusterGateway) GetGroupVersionResource() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
-		Group:    "cluster.core.oam.dev",
-		Version:  "v1alpha1",
-		Resource: "clustergateways",
+		Group:    config.MetaApiGroupName,
+		Version:  config.MetaApiVersionName,
+		Resource: config.MetaApiResourceName,
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 
 	"github.com/pkg/errors"
@@ -153,8 +154,8 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 	host, _, _ := net.SplitHostPort(urlAddr.Host)
-	const apiPrefix = "/apis/cluster.core.oam.dev/v1alpha1/clustergateways/"
-	const apiSuffix = "/proxy"
+	apiPrefix := "/apis/" + config.MetaApiGroupName + "/" + config.MetaApiVersionName + "/clustergateways/"
+	apiSuffix := "/proxy"
 	path := strings.TrimPrefix(request.URL.Path, apiPrefix+p.parentName+apiSuffix)
 	newReq.Host = host
 	newReq.Header.Add("Host", host)

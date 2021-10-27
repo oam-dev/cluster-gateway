@@ -14,6 +14,8 @@ COPY cmd/ cmd/
 COPY pkg/ pkg/
 COPY hack/ hack/
 
+ARG API_GROUP_NAME=cluster.core.oam.dev
+
 # Build
 RUN GOPROXY="https://goproxy.cn/,direct" \
     CGO_ENABLED=0 \
@@ -21,6 +23,7 @@ RUN GOPROXY="https://goproxy.cn/,direct" \
     GOARCH=amd64 \
     GO111MODULE=on \
     go build \
+        -ldflags="-X 'github.com/oam-dev/cluster-gateway/pkg/config.MetaApiGroupName=${API_GROUP_NAME}'" \
         -a -o apiserver \
         cmd/apiserver/main.go
 
