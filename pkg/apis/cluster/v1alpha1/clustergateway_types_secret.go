@@ -199,8 +199,8 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	credentialType, ok := secret.Labels[LabelKeyClusterCredentialType]
 	if !ok {
 		return nil, errors.NewNotFound(schema.GroupResource{
-			Group:    "cluster.core.oam.dev",
-			Resource: "clustergateways",
+			Group:    config.MetaApiGroupName,
+			Resource: config.MetaApiResourceName,
 		}, secret.Name)
 	}
 
