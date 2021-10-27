@@ -34,8 +34,6 @@ import (
 // ManagedCluster. The Tier-II cluster model should be highly protected under
 // RBAC policies and only the admin shall have the access to view the content
 // of cluster credentials.
-//
-// Documentation: https://yuque.antfin.com/antcloud-paas/ar858o/tku0n9#6433b698
 // +k8s:openapi-gen=true
 type ClusterGateway struct {
 	metav1.TypeMeta   `json:",inline"`
