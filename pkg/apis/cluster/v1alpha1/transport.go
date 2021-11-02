@@ -73,7 +73,8 @@ func GetEndpointURL(c *ClusterGateway) (*url.URL, error) {
 	case ClusterEndpointTypeConst:
 		urlAddr, err := url.Parse(c.Spec.Access.Endpoint.Const.Address)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed parsing url from cluster %s invalid value %s", c.Name, c.Spec.Access.Endpoint)
+			return nil, errors.Wrapf(err, "failed parsing url from cluster %s invalid value %s",
+				c.Name, c.Spec.Access.Endpoint.Const.Address)
 		}
 		return urlAddr, nil
 	case ClusterEndpointTypeClusterProxy:
