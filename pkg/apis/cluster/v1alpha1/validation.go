@@ -40,22 +40,26 @@ func ValidateClusterGatewaySpec(c *ClusterGatewaySpec, path *field.Path) field.E
 
 func ValidateClusterGatewaySpecAccess(c *ClusterAccess, path *field.Path) field.ErrorList {
 	var errs field.ErrorList
-	if len(c.Endpoint) == 0 {
-		errs = append(errs, field.Required(path.Child("endpoint"), "should provide cluster endpoint"))
-	}
-	u, err := url.Parse(c.Endpoint)
-	if err != nil {
-		errs = append(errs, field.Invalid(path.Child("endpoint"), c.Endpoint, fmt.Sprintf("failed parsing as URL: %v", err)))
-		return errs
-	}
-	if u.Scheme != "https" {
-		errs = append(errs, field.Invalid(path.Child("endpoint"), c.Endpoint, "scheme must be https"))
+	switch c.Endpoint.Type {
+	case ClusterEndpointTypeConst:
+		if len(c.Endpoint.Const.Address) == 0 {
+			errs = append(errs, field.Required(path.Child("endpoint"), "should provide cluster endpoint"))
+		}
+		u, err := url.Parse(c.Endpoint.Const.Address)
+		if err != nil {
+			errs = append(errs, field.Invalid(path.Child("endpoint"), c.Endpoint, fmt.Sprintf("failed parsing as URL: %v", err)))
+			return errs
+		}
+		if u.Scheme != "https" {
+			errs = append(errs, field.Invalid(path.Child("endpoint"), c.Endpoint, "scheme must be https"))
+		}
+		if len(c.Endpoint.Const.CABundle) == 0 &&
+			(c.Endpoint.Const.Insecure == nil || *c.Endpoint.Const.Insecure == false) {
+			errs = append(errs, field.Required(path.Child("caBundle"), "required for non-insecure endpoint"))
+		}
 	}
 	if c.Credential != nil {
 		errs = append(errs, ValidateClusterGatewaySpecAccessCredential(c.Credential, path.Child("credential"))...)
-	}
-	if len(c.CABundle) == 0 && (c.Insecure == nil || *c.Insecure == false) {
-		errs = append(errs, field.Required(path.Child("caBundle"), "required for non-insecure endpoint"))
 	}
 	return errs
 }

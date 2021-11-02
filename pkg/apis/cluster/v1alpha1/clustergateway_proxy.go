@@ -158,7 +158,6 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	apiSuffix := "/proxy"
 	path := strings.TrimPrefix(request.URL.Path, apiPrefix+p.parentName+apiSuffix)
 	newReq.Host = host
-	newReq.Header.Add("Host", host)
 	newReq.URL.Path = path
 	newReq.URL.RawQuery = request.URL.RawQuery
 	newReq.RequestURI = newReq.URL.RequestURI()

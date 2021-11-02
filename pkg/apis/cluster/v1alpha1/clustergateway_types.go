@@ -16,8 +16,8 @@ package v1alpha1
 
 import (
 	"context"
-	"github.com/oam-dev/cluster-gateway/pkg/config"
 
+	"github.com/oam-dev/cluster-gateway/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -62,13 +62,8 @@ type ClusterGatewaySpec struct {
 type ClusterAccess struct {
 	// Endpoint is a qualified URL string for accessing the cluster.
 	// e.g. https://example.com:6443/
-	Endpoint string `json:"endpoint"`
-	// CABundle is used for verifying cluster's serving CA certificate.
-	CABundle []byte `json:"caBundle,omitempty"`
-	// Insecure indicates the cluster should be access'd w/o verifying
-	// CA certificate at client-side.
-	Insecure *bool `json:"insecure,omitempty"`
-	// ClusterAccessCredential holds authentication configuration for
+	Endpoint *ClusterEndpoint `json:"endpoint"`
+	// Credential holds authentication configuration for
 	// accessing the target cluster.
 	Credential *ClusterAccessCredential `json:"credential,omitempty"`
 }
@@ -87,7 +82,38 @@ const (
 var (
 	// LabelKeyClusterCredentialType describes the credential type in object label field
 	LabelKeyClusterCredentialType = config.MetaApiGroupName + "/cluster-credential-type"
+	// LabelKeyClusterEndpointType describes the endpoint type.
+	LabelKeyClusterEndpointType = config.MetaApiGroupName + "/cluster-endpoint-type"
 )
+
+type ClusterEndpointType string
+
+type ClusterEndpoint struct {
+	// Type is the union discriminator for prescribing apiserver endpoint.
+	Type ClusterEndpointType `json:"type"`
+	// Const prescribes fixed endpoint for requesting target clusters.
+	Const *ClusterEndpointConst `json:"const,omitempty"`
+}
+
+const (
+	// ClusterEndpointTypeConst prescribes requesting kube-apiserver via
+	// a fixed endpoint url.
+	ClusterEndpointTypeConst = "Const"
+	// ClusterEndpointTypeClusterProxy prescribes requesting kube-apiserver
+	// through the konnectivity tunnel. Note that no explicit endpoint are
+	// required under ClusterProxy mode.
+	ClusterEndpointTypeClusterProxy = "ClusterProxy"
+)
+
+type ClusterEndpointConst struct {
+	// Address is a qualified hostname for accessing the local kube-apiserver.
+	Address string `json:"address"`
+	// CABundle is used for verifying cluster's serving CA certificate.
+	CABundle []byte `json:"caBundle,omitempty"`
+	// Insecure indicates the cluster should be access'd w/o verifying
+	// CA certificate at client-side.
+	Insecure *bool `json:"insecure,omitempty"`
+}
 
 type ClusterAccessCredential struct {
 	// Type is the union discriminator for credential contents.
