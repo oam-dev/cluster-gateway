@@ -39,8 +39,11 @@ func main() {
 		ExposeLoopbackMasterClientConfig().
 		WithoutEtcd().
 		WithOptionsFns(func(options *builder.ServerOptions) *builder.ServerOptions {
-			if err := config.Validate(); err != nil {
-				panic(err)
+			if err := config.ValidateSecret(); err != nil {
+				klog.Fatal(err)
+			}
+			if err := config.ValidateClusterProxy(); err != nil {
+				klog.Fatal(err)
 			}
 			return options
 		}).
@@ -48,9 +51,9 @@ func main() {
 	if err != nil {
 		klog.Fatal(err)
 	}
-	config.AddFlags(cmd.Flags())
-	cmd.Flags().BoolVarP(
-		&options.OCMIntegration, "ocm-integration", "", false,
+	config.AddSecretFlags(cmd.Flags())
+	config.AddClusterProxyFlags(cmd.Flags())
+	cmd.Flags().BoolVarP(&options.OCMIntegration, "ocm-integration", "", false,
 		"Enabling OCM integration, reading cluster CA and api endpoint from managed "+
 			"cluster.")
 	if err := cmd.Execute(); err != nil {

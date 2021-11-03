@@ -133,6 +133,7 @@ func (in *ClusterGateway) ConvertToTable(ctx context.Context, object runtime.Obj
 }
 
 func initClientOnce() {
+	// TODO: better client instance injection?
 	initClient.Do(func() {
 		kubeClient = kubernetes.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig())
 		ocmClient = ocmclient.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig())
@@ -189,13 +190,43 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 		},
 		Spec: ClusterGatewaySpec{
 			Provider: "",
-			Access: ClusterAccess{
-				CABundle: caData,
-				Insecure: &insecure,
-				Endpoint: apiServerEndpoint,
-			},
+			Access:   ClusterAccess{},
 		},
 	}
+
+	// converting endpoint
+	endpointType, ok := secret.Labels[LabelKeyClusterEndpointType]
+	if !ok {
+		endpointType = ClusterEndpointTypeConst
+	}
+	switch ClusterEndpointType(endpointType) {
+	case ClusterEndpointTypeClusterProxy:
+		c.Spec.Access.Endpoint = &ClusterEndpoint{
+			Type: ClusterEndpointType(endpointType),
+		}
+	case ClusterEndpointTypeConst:
+		fallthrough // backward compatibility
+	default:
+		if insecure {
+			c.Spec.Access.Endpoint = &ClusterEndpoint{
+				Type: ClusterEndpointType(endpointType),
+				Const: &ClusterEndpointConst{
+					Address:  apiServerEndpoint,
+					Insecure: &insecure,
+				},
+			}
+		} else {
+			c.Spec.Access.Endpoint = &ClusterEndpoint{
+				Type: ClusterEndpointType(endpointType),
+				Const: &ClusterEndpointConst{
+					Address:  apiServerEndpoint,
+					CABundle: caData,
+				},
+			}
+		}
+	}
+
+	// converting credential
 	credentialType, ok := secret.Labels[LabelKeyClusterCredentialType]
 	if !ok {
 		return nil, errors.NewNotFound(schema.GroupResource{
@@ -203,7 +234,6 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 			Resource: config.MetaApiResourceName,
 		}, secret.Name)
 	}
-
 	switch CredentialType(credentialType) {
 	case CredentialTypeX509Certificate:
 		c.Spec.Access.Credential = &ClusterAccessCredential{
@@ -219,7 +249,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 			ServiceAccountToken: string(secret.Data[v1.ServiceAccountTokenKey]),
 		}
 	default:
-		return nil, fmt.Errorf("unrecognized secret type %v", credentialType)
+		return nil, fmt.Errorf("unrecognized secret credential type %v", credentialType)
 	}
 	return c, nil
 }
