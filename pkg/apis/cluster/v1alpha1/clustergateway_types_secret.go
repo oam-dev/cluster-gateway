@@ -158,7 +158,7 @@ func convertFromManagedClusterAndSecret(managedCluster *clusterv1.ManagedCluster
 
 func getEndpointFromManagedCluster(managedCluster *clusterv1.ManagedCluster) ([]byte, string, error) {
 	if len(managedCluster.Spec.ManagedClusterClientConfigs) == 0 {
-		return nil, "", fmt.Errorf("no external endpoint configured for cluster %v", managedCluster.Name)
+		return nil, "", nil
 	}
 	cfg := managedCluster.Spec.ManagedClusterClientConfigs[0]
 	return cfg.CABundle, cfg.URL, nil
