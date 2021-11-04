@@ -13,7 +13,7 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -40,6 +40,7 @@ func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOpt
 		Secrets(config.SecretNamespace).
 		Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
+		klog.Warningf("Failed getting secret %q/%q: %v", config.SecretNamespace, name, err)
 		return nil, err
 	}
 
@@ -135,6 +136,7 @@ func (in *ClusterGateway) ConvertToTable(ctx context.Context, object runtime.Obj
 func initClientOnce() {
 	// TODO: better client instance injection?
 	initClient.Do(func() {
+		klog.Infof("Master loopback client: %v", loopback.GetLoopbackMasterClientConfig().Host)
 		kubeClient = kubernetes.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig())
 		ocmClient = ocmclient.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig())
 	})
@@ -158,7 +160,7 @@ func convertFromManagedClusterAndSecret(managedCluster *clusterv1.ManagedCluster
 
 func getEndpointFromManagedCluster(managedCluster *clusterv1.ManagedCluster) ([]byte, string, error) {
 	if len(managedCluster.Spec.ManagedClusterClientConfigs) == 0 {
-		return nil, "", fmt.Errorf("no external endpoint configured for cluster %v", managedCluster.Name)
+		return nil, "", nil
 	}
 	cfg := managedCluster.Spec.ManagedClusterClientConfigs[0]
 	return cfg.CABundle, cfg.URL, nil
@@ -229,7 +231,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	// converting credential
 	credentialType, ok := secret.Labels[LabelKeyClusterCredentialType]
 	if !ok {
-		return nil, errors.NewNotFound(schema.GroupResource{
+		return nil, apierrors.NewNotFound(schema.GroupResource{
 			Group:    config.MetaApiGroupName,
 			Resource: config.MetaApiResourceName,
 		}, secret.Name)

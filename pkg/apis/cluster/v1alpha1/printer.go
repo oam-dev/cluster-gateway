@@ -38,7 +38,13 @@ func printClusterGatewayRow(c *ClusterGateway) metav1.TableRow {
 	if c.Spec.Access.Credential != nil {
 		credType = string(c.Spec.Access.Credential.Type)
 	}
-	ep := c.Spec.Access.Endpoint
+	ep := "<none>"
+	switch c.Spec.Access.Endpoint.Type {
+	case ClusterEndpointTypeConst:
+		if c.Spec.Access.Endpoint.Const != nil {
+			ep = c.Spec.Access.Endpoint.Const.Address
+		}
+	}
 	row := metav1.TableRow{
 		Object: runtime.RawExtension{Object: c},
 	}
