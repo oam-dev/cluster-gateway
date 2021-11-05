@@ -202,10 +202,7 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	}
 	upgrading := utilnet.SetOldTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 0,
-		}).DialContext,
+		DialContext:     cfg.Dial,
 	})
 	proxy.UpgradeTransport = apiproxy.NewUpgradeRequestRoundTripper(
 		upgrading,
