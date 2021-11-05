@@ -17,6 +17,7 @@ package v1alpha1
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"k8s.io/client-go/transport"
 
@@ -101,7 +102,10 @@ func (p gatewayAPIPrefixPrepender) RoundTrip(req *http.Request) (*http.Response,
 		"/" +
 		v1alpha1.SchemeGroupVersion.Version +
 		"/clustergateways/"
-	fullPath := prefix + p.clusterNameGetter(req.Context()) + "/proxy/" + originalPath
+	if !strings.HasPrefix(originalPath, "/") {
+		originalPath = "/" + originalPath
+	}
+	fullPath := prefix + p.clusterNameGetter(req.Context()) + "/proxy" + originalPath
 	req.URL.Path = fullPath
 	return p.delegate.RoundTrip(req)
 }
