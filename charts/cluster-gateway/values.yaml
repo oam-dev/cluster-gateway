@@ -1,5 +1,5 @@
 # Image of the cluster-gateway instances
-image: registry-vpc.cn-beijing.aliyuncs.com/open_cluster_management/cluster-gateway:v1.1.4-ocm.2
+image: oamdev/cluster-gateway:v1.1.6
 # Number of replicas
 replicas: 3
 # A secured namespace for reading cluster secrets

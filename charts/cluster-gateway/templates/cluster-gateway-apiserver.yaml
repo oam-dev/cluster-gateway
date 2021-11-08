@@ -29,18 +29,18 @@ spec:
           args:
             - --secure-port=9443
             - --secret-namespace={{ .Values.secretNamespace }}
-            {{ .ocmIntegration.enabled }}
+            {{ if .Values.ocmIntegration.enabled }}
             - --ocm-integration=true
-            {{ .ocmIntegration.clusterProxy.enabled }}
-            - --proxy-host={{ .ocmIntegration.clusterProxy.endpoint.host }}
-            - --proxy-port={{ .ocmIntegration.clusterProxy.endpoint.port }}
-            - --proxy-ca-cert=/etc/ca/ca..ocmIntegration.clusterProxy.crt
+            {{ if .Values.ocmIntegration.clusterProxy.enabled }}
+            - --proxy-host={{ .Values.ocmIntegration.clusterProxy.endpoint.host }}
+            - --proxy-port={{ .Values.ocmIntegration.clusterProxy.endpoint.port }}
+            - --proxy-ca-cert=/etc/ca/ca.crt
             - --proxy-cert=/etc/tls/tls.crt
             - --proxy-key=/etc/tls/tls.key
             {{ end }}
             {{ end }}
             # TODO: certificate rotation, otherwise the self-signed will expire in 1 year
-          {{ .ocmIntegration.clusterProxy.enabled }}
+          {{ if .Values.ocmIntegration.clusterProxy.enabled }}
           volumeMounts:
             - name: proxy-client
               mountPath: "/etc/tls/"

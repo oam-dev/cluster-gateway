@@ -26,3 +26,6 @@ apiserver.local.config/**
 config/crd/**
 kubeconfig
 default.etcd/**
+
+*.tgz
+index.yaml
