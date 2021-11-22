@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strconv"
@@ -127,6 +128,7 @@ func (c *ClusterGatewayInstaller) Reconcile(ctx context.Context, request reconci
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed encoding CA cert")
 	}
+
 	namespace := clusterGatewayConfiguration.Spec.InstallNamespace
 	targets := []client.Object{
 		newServiceAccount(addon, namespace),
@@ -147,6 +149,11 @@ func (c *ClusterGatewayInstaller) Reconcile(ctx context.Context, request reconci
 		}
 	}
 
+	// always update apiservice
+	if err := c.ensureAPIService(addon, namespace); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed ensuring cluster-gateway apiservice")
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -162,6 +169,27 @@ func (c *ClusterGatewayInstaller) ensureNamespace(namespace string) error {
 	}
 	if _, err := c.nativeClient.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *ClusterGatewayInstaller) ensureAPIService(addon *addonv1alpha1.ClusterManagementAddOn, namespace string) error {
+	caCertData, _, err := c.caPair.Config.GetPEMBytes()
+	if err != nil {
+		return err
+	}
+	expected := newAPIService(addon, namespace, caCertData)
+	current := &apiregistrationv1.APIService{}
+	if err := c.client.Get(context.TODO(), types.NamespacedName{
+		Name: expected.Name,
+	}, current); err != nil {
+		return err
+	}
+	if !bytes.Equal(caCertData, current.Spec.CABundle) {
+		expected.ResourceVersion = current.ResourceVersion
+		if err := c.client.Update(context.TODO(), expected); err != nil {
 			return err
 		}
 	}
@@ -372,7 +400,7 @@ func newClusterGatewayService(addon *addonv1alpha1.ClusterManagementAddOn, names
 func newAPIService(addon *addonv1alpha1.ClusterManagementAddOn, namespace string, verifyingCABundle []byte) *apiregistrationv1.APIService {
 	return &apiregistrationv1.APIService{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "v1alpha1.gateway.proxy.open-cluster-management.io",
+			Name: "v1alpha1.cluster.core.oam.dev",
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: addonv1alpha1.GroupVersion.String(),
@@ -383,7 +411,7 @@ func newAPIService(addon *addonv1alpha1.ClusterManagementAddOn, namespace string
 			},
 		},
 		Spec: apiregistrationv1.APIServiceSpec{
-			Group:   "gateway.proxy.open-cluster-management.io",
+			Group:   "cluster.core.oam.dev",
 			Version: "v1alpha1",
 			Service: &apiregistrationv1.ServiceReference{
 				Namespace: namespace,

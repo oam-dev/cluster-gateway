@@ -71,8 +71,8 @@ func (c *clusterGatewayAddonManager) Manifests(cluster *clusterv1.ManagedCluster
 				Type: ocmauthv1alpha1.ProjectionTypeSecret,
 				Secret: &ocmauthv1alpha1.ProjectedSecret{
 					Labels: map[string]string{
-						"gateway.proxy.open-cluster-management.io/cluster-credential-type": "ServiceAccountToken",
-						"gateway.proxy.open-cluster-management.io/cluster-endpoint-type":   endpointType,
+						"cluster.core.oam.dev/cluster-credential-type": "ServiceAccountToken",
+						"cluster.core.oam.dev/cluster-endpoint-type":   endpointType,
 					},
 					Namespace: gatewayConfig.Spec.SecretNamespace,
 					Name:      cluster.Name,

@@ -114,12 +114,7 @@ manifests: controller-gen
 		rbac:roleName=manager-role \
 		output:crd:artifacts:config=hack/crd/bases
 
-ocm-apiserver:
-	docker build -t oamdev/cluster-gateway:${IMG_TAG} \
-		-f cmd/apiserver/Dockerfile \
-		--build-arg API_GROUP_NAME=gateway.proxy.open-cluster-management.io .
-
 ocm-addon-manager:
-	docker build -t oamdev/cluster-gateway-addon-manager:${IMG_TAG} \
+	docker build -t yue9944882/cluster-gateway-addon-manager:${IMG_TAG} \
 		-f cmd/addon-manager/Dockerfile \
 		.
