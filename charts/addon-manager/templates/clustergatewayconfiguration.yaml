@@ -1,0 +1,17 @@
+apiVersion: proxy.open-cluster-management.io/v1alpha1
+kind: ClusterGatewayConfiguration
+metadata:
+  name: cluster-gateway
+spec:
+  image: {{ .Values.clusterGateway.image }}
+  installNamespace: {{ .Values.clusterGateway.installNamespace }}
+  secretNamespace: {{ .Values.clusterGateway.secretNamespace }}
+  egress:
+    type: ClusterProxy
+    clusterProxy:
+      proxyServerHost: "proxy-entrypoint.open-cluster-management-addon"
+      proxyServerPort: 8090
+      credentials:
+        namespace: open-cluster-management-addon
+        proxyClientCASecretName: proxy-server-ca
+        proxyClientSecretName: proxy-client

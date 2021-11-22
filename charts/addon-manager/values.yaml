@@ -1,14 +1,9 @@
 # Image of the cluster-gateway instances
-image: oamdev/cluster-gateway:v1.1.6
-# Number of replicas
-replicas: 3
-# A secured namespace for reading cluster secrets
-secretNamespace: open-cluster-management-credentials
+image: yue9944882/cluster-gateway-addon-manager:v1.1.6.ocm.2
 
-ocmIntegration:
-  enabled: true
-  clusterProxy:
-    enabled: true
-    endpoint:
-      host: proxy-entrypoint.open-cluster-management-cluster-proxy
-      port: 8090
+clusterGateway:
+  image: oamdev/cluster-gateway:v1.1.6.ocm
+  installNamespace: open-cluster-management-addon
+  secretNamespace: open-cluster-management-credentials
+# Number of replicas
+replicas: 1
