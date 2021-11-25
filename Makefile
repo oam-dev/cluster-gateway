@@ -1,6 +1,7 @@
 
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
+IMG_TAG ?= latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -47,10 +48,6 @@ deploy: manifests kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
 # Run go fmt against code
 fmt:
 	go fmt ./...
@@ -58,10 +55,6 @@ fmt:
 # Run go vet against code
 vet:
 	go vet ./...
-
-# Generate code
-generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
 docker-build: test
@@ -110,3 +103,18 @@ client-gen:
  	-g client-gen \
  	--versions=github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1 \
  	--install-generators=false
+
+
+generate: controller-gen
+	${CONTROLLER_GEN} object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/proxy/..."
+
+manifests: controller-gen
+	${CONTROLLER_GEN} $(CRD_OPTIONS) \
+		paths="./pkg/apis/proxy/..." \
+		rbac:roleName=manager-role \
+		output:crd:artifacts:config=hack/crd/bases
+
+ocm-addon-manager:
+	docker build -t yue9944882/cluster-gateway-addon-manager:${IMG_TAG} \
+		-f cmd/addon-manager/Dockerfile \
+		.

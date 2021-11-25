@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-gateway-addon-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: cluster-gateway-addon-manager
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: cluster-gateway-addon-manager
+  template:
+    metadata:
+      labels:
+        app: cluster-gateway-addon-manager
+    spec:
+      serviceAccount: cluster-gateway-addon-manager
+      containers:
+        - name: cluster-gateway-addon-manager
+          image: {{ .Values.image }}
+          args:
+            - --leader-elect=true
