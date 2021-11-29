@@ -35,7 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/apiserver/pkg/registry/rest"
+	registryrest "k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
@@ -44,7 +44,7 @@ import (
 )
 
 var _ resource.SubResource = &ClusterGatewayProxy{}
-var _ rest.Storage = &ClusterGatewayProxy{}
+var _ registryrest.Storage = &ClusterGatewayProxy{}
 var _ resourcerest.Connecter = &ClusterGatewayProxy{}
 
 var proxyMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
@@ -61,6 +61,14 @@ type ClusterGatewayProxyOptions struct {
 	// Path is the target api path of the proxy request.
 	// e.g. "/healthz", "/api/v1"
 	Path string `json:"path"`
+
+	// Impersonate indicates whether to impersonate as the original
+	// user identity from the request context after proxying to the
+	// target cluster.
+	// Note that this will requires additional RBAC settings inside
+	// the target cluster for the impersonated users (i.e. the end-
+	// user using the proxy subresource.).
+	Impersonate bool `json:"impersonate"`
 }
 
 func (c *ClusterGatewayProxy) SubResourceName() string {
@@ -71,7 +79,7 @@ func (c *ClusterGatewayProxy) New() runtime.Object {
 	return &ClusterGatewayProxyOptions{}
 }
 
-func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options runtime.Object, r rest.Responder) (http.Handler, error) {
+func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options runtime.Object, r registryrest.Responder) (http.Handler, error) {
 	proxyOpts, ok := options.(*ClusterGatewayProxyOptions)
 	if !ok {
 		return nil, fmt.Errorf("invalid options object: %#v", options)
@@ -102,6 +110,7 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 	return &proxyHandler{
 		parentName:     id,
 		path:           proxyOpts.Path,
+		impersonate:    proxyOpts.Impersonate,
 		clusterGateway: parentObj.(*ClusterGateway),
 		responder:      r,
 		finishFunc: func(code int) {
@@ -123,6 +132,7 @@ var _ resource.QueryParameterObject = &ClusterGatewayProxyOptions{}
 
 func (in *ClusterGatewayProxyOptions) ConvertFromUrlValues(values *url.Values) error {
 	in.Path = values.Get("path")
+	in.Impersonate = values.Get("impersonate") == "true"
 	return nil
 }
 
@@ -131,8 +141,9 @@ var _ http.Handler = &proxyHandler{}
 type proxyHandler struct {
 	parentName     string
 	path           string
+	impersonate    bool
 	clusterGateway *ClusterGateway
-	responder      rest.Responder
+	responder      registryrest.Responder
 	finishFunc     func(code int)
 }
 
@@ -166,6 +177,9 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	if err != nil {
 		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating cluster proxy client config %s", cluster.Name))
 		return
+	}
+	if p.impersonate {
+		cfg.Impersonate = getImpersonationConfig(request)
 	}
 	rt, err := restclient.TransportFor(cfg)
 	if err != nil {
@@ -244,4 +258,13 @@ type ErrorResponderFunc func(w http.ResponseWriter, req *http.Request, err error
 
 func (e ErrorResponderFunc) Error(w http.ResponseWriter, req *http.Request, err error) {
 	e(w, req, err)
+}
+
+func getImpersonationConfig(req *http.Request) restclient.ImpersonationConfig {
+	user, _ := request.UserFrom(req.Context())
+	return restclient.ImpersonationConfig{
+		UserName: user.GetName(),
+		Groups:   user.GetGroups(),
+		Extra:    user.GetExtra(),
+	}
 }
