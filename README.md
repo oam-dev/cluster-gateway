@@ -1,37 +1,42 @@
 # Cluster Gateway
 
-"Cluster-Gateway" is a gateway apiserver for routing kubernetes api traffic
+## Overall
+
+"Cluster Gateway" is a gateway apiserver for routing kubernetes api traffic
 to multiple kubernetes clusters. Additionally, the gateway is completely 
 pluggable for a running kubernetes cluster natively because it is developed
 based on the native api extensibility named [apiserver-aggregation](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/).
-A new extended resource "cluster.core.oam.dev/ClusterGateway" will be registered into the
-hosting cluster after properly applying corresponding `APIService` objects, 
-and the new subresource named "proxy" will be available for every existing 
-"ClusterGateway" resource which is inspired by the original kubernetes 
-"service/proxy", "pod/proxy" subresource.
+A new extended resource "cluster.core.oam.dev/ClusterGateway" will be 
+registered into the hosting cluster after properly applying corresponding 
+`APIService` objects, and a new subresource named "proxy" will be available 
+for every existing "Cluster Gateway" resource which is inspired by the 
+original kubernetes "service/proxy", "pod/proxy" subresource.
 
-Overall our "Cluster-Gateway" also has the following merits as a multi-cluster 
+Overall our "Cluster Gateway" also has the following merits as a multi-cluster 
 api-gateway solution:
 
-- Zero-Dependency: Normally an aggregated apiserver must be deployed along with a
-  dedicated etcd cluster which is bringing extra costs for the admins. While
-  our "Cluster-Gateway" can be running completely without etcd instances,
-  because the extended "ClusterGateway" resource are physically stored as
-  secret resources in the hosting kubernetes cluster.
+- __Etcd Free__: Normally an aggregated apiserver must be deployed along 
+  with a dedicated etcd cluster which is bringing extra costs for the admins. 
+  While our "Cluster Gateway" can be running completely without etcd instances,
+  because the extended "ClusterGateway" resource are virtual read-only 
+  kubernetes resource which is converted from secret resources from a namespace
+  in the hosting cluster.
   
-- Scalability: We can scale out the gateway instances in arbitrary replicas
-  freely. Also it's proven stably working in production for years.
+- __Scalability__: Our "Cluster Gateway" can scale out to arbitrary instances
+  to deal with the increasing loads 
+  
+![Arch](./docs/images/arch.png)
+
 
 ## Image
 
 ```shell
-$ docker pull oamdev/cluster-gateway:v1.1.4 # Or other newer tags
+$ docker pull oamdev/cluster-gateway:v1.1.6 # Or other newer tags
 ```
 
 ## Documentation
 
-__Run Local__: https://github.com/oam-dev/cluster-gateway/blob/master/docs/non-etcd-apiserver/local-run.md
-
+- __Run Local__: https://github.com/oam-dev/cluster-gateway/blob/master/docs/non-etcd-apiserver/local-run.md
 
 #### Resource Example
 
