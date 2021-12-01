@@ -18,7 +18,7 @@ all: manager
 
 # Run tests
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out
+	go test ./pkg/... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet
@@ -118,3 +118,10 @@ ocm-addon-manager:
 	docker build -t yue9944882/cluster-gateway-addon-manager:${IMG_TAG} \
 		-f cmd/addon-manager/Dockerfile \
 		.
+
+e2e-binary:
+	go test -c ./e2e/
+
+e2e-bench-binary:
+	go test -c ./e2e/benchmark/
+
