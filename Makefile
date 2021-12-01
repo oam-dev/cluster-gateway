@@ -118,3 +118,10 @@ ocm-addon-manager:
 	docker build -t yue9944882/cluster-gateway-addon-manager:${IMG_TAG} \
 		-f cmd/addon-manager/Dockerfile \
 		.
+
+e2e-binary:
+	go test -c ./e2e/
+
+e2e-bench-binary:
+	go test -c ./e2e/benchmark/
+

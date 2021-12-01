@@ -58,3 +58,22 @@ spec:
 status: { }      
 ```
 
+### Performance
+
+Compile the e2e benchmark suite by:
+
+```shell
+$ make e2e-benchmark-binary
+```
+
+
+The benchmark suite will be creating-updating-deleting configmaps in a flow
+repeatly for 100 times. Here's a comparison of the performance we observed
+in a local experiment:
+
+
+|  Bandwidth  |  Direct          |  ClusterGateway  | ClusterGateway(over Konnectivity) |
+|-------------|------------------|------------------|-----------------------------------|
+|  Fastest    |  0.083s          |  0.560s          | 0.556s                            |
+|  Slowest    |  1.078s          |  1.887s          | 2.579s                            |
+|  Average    |  0.580s ± 0.175s |  0.849s ± 0.361s | 1.408s ± 0.542s                   |
