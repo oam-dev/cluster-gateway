@@ -653,6 +653,11 @@ func newAPFClusterRole(addon *addonv1alpha1.ClusterManagementAddOn) *rbacv1.Clus
 				Resources: []string{"prioritylevelconfigurations", "flowschemas"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
+			{
+				APIGroups: []string{"authorization.k8s.io"},
+				Resources: []string{"subjectaccessreviews"},
+				Verbs:     []string{"*"},
+			},
 		},
 	}
 }

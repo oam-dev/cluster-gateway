@@ -1,6 +1,7 @@
 package event
 
 import (
+	"github.com/oam-dev/cluster-gateway/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -36,6 +37,13 @@ func (s *SecretHandler) process(secret *corev1.Secret, q workqueue.RateLimitingI
 			q.Add(reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name: ref.Name,
+				},
+			})
+		}
+		if ref.Kind == "ManagedServiceAccount" && ref.Name == common.AddonName {
+			q.Add(reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: common.AddonName,
 				},
 			})
 		}
