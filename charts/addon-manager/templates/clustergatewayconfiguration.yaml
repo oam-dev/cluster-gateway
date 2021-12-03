@@ -6,6 +6,10 @@ spec:
   image: {{ .Values.clusterGateway.image }}
   installNamespace: {{ .Values.clusterGateway.installNamespace }}
   secretNamespace: {{ .Values.clusterGateway.secretNamespace }}
+  secretManagement:
+    type: ManagedServiceAccount
+    managedServiceAccount:
+      name: cluster-gateway
   egress:
     type: ClusterProxy
     clusterProxy:

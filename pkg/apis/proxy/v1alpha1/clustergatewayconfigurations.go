@@ -36,6 +36,8 @@ type ClusterGatewayConfigurationSpec struct {
 	// +required
 	InstallNamespace string `json:"installNamespace"`
 	// +required
+	SecretManagement ClusterGatewaySecretManagement `json:"secretManagement"`
+	// +required
 	Egress ClusterGatewayTrafficEgress `json:"egress"`
 }
 
@@ -68,6 +70,28 @@ type ClusterGatewayTrafficEgressClusterProxyCredential struct {
 	Namespace               string `json:"namespace"`
 	ProxyClientSecretName   string `json:"proxyClientSecretName"`
 	ProxyClientCASecretName string `json:"proxyClientCASecretName"`
+}
+
+type ClusterGatewaySecretManagement struct {
+	// +optional
+	// +kubebuilder:default=ManagedServiceAccount
+	Type SecretManagementType `json:"type"`
+	// +optional
+	ManagedServiceAccount *SecretManagementManagedServiceAccount `json:"managedServiceAccount,omitempty"`
+}
+
+// +kubebuilder:validation:Enum=Manual;ManagedServiceAccount
+type SecretManagementType string
+
+const (
+	SecretManagementTypeManual                = "Manual"
+	SecretManagementTypeManagedServiceAccount = "ManagedServiceAccount"
+)
+
+type SecretManagementManagedServiceAccount struct {
+	// +optional
+	// +kubebuilder:default=cluster-gateway
+	Name string `json:"name"`
 }
 
 const (

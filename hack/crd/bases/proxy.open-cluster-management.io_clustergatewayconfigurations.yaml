@@ -70,12 +70,28 @@ spec:
                 type: string
               installNamespace:
                 type: string
+              secretManagement:
+                properties:
+                  managedServiceAccount:
+                    properties:
+                      name:
+                        default: cluster-gateway
+                        type: string
+                    type: object
+                  type:
+                    default: ManagedServiceAccount
+                    enum:
+                    - Manual
+                    - ManagedServiceAccount
+                    type: string
+                type: object
               secretNamespace:
                 type: string
             required:
             - egress
             - image
             - installNamespace
+            - secretManagement
             - secretNamespace
             type: object
           status:

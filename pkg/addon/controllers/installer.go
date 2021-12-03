@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 	proxyv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/proxy/v1alpha1"
 	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"github.com/oam-dev/cluster-gateway/pkg/event"
@@ -28,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	ocmauthv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -55,6 +57,11 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 			&event.ClusterGatewayConfigurationHandler{
 				Client: mgr.GetClient(),
 			}).
+		Watches(
+			&source.Kind{
+				Type: &corev1.Secret{},
+			},
+			&event.SecretHandler{}).
 		Complete(installer)
 }
 
@@ -81,6 +88,11 @@ func (c *ClusterGatewayInstaller) Reconcile(ctx context.Context, request reconci
 		}
 		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster-management-addon: %v", request.Name)
 	}
+	if addon.Name != common.AddonName {
+		// skip
+		return reconcile.Result{}, nil
+	}
+
 	if addon.Spec.AddOnConfiguration.CRDName != common.ClusterGatewayConfigurationCRDName {
 		// skip
 		return reconcile.Result{}, nil
@@ -102,8 +114,11 @@ func (c *ClusterGatewayInstaller) Reconcile(ctx context.Context, request reconci
 	if err := c.ensureNamespace(clusterGatewayConfiguration.Spec.SecretNamespace); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to ensure required namespace")
 	}
-	if err := c.ensureProxySecrets(clusterGatewayConfiguration); err != nil {
+	if err := c.ensureClusterProxySecrets(clusterGatewayConfiguration); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to ensure required proxy client related credentials")
+	}
+	if err := c.ensureSecretManagement(addon, clusterGatewayConfiguration); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed to configure secret management")
 	}
 
 	sans := []string{
@@ -196,7 +211,7 @@ func (c *ClusterGatewayInstaller) ensureAPIService(addon *addonv1alpha1.ClusterM
 	return nil
 }
 
-func (c *ClusterGatewayInstaller) ensureProxySecrets(config *proxyv1alpha1.ClusterGatewayConfiguration) error {
+func (c *ClusterGatewayInstaller) ensureClusterProxySecrets(config *proxyv1alpha1.ClusterGatewayConfiguration) error {
 	if config.Spec.Egress.Type != proxyv1alpha1.EgressTypeClusterProxy {
 		return nil
 	}
@@ -227,6 +242,106 @@ func (c *ClusterGatewayInstaller) ensureProxySecrets(config *proxyv1alpha1.Clust
 		Create(context.TODO(), proxyClientSecret, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed creating CA secret")
+		}
+	}
+	return nil
+}
+
+func (c *ClusterGatewayInstaller) ensureSecretManagement(clusterAddon *addonv1alpha1.ClusterManagementAddOn, config *proxyv1alpha1.ClusterGatewayConfiguration) error {
+	if config.Spec.SecretManagement.Type != proxyv1alpha1.SecretManagementTypeManagedServiceAccount {
+		return nil
+	}
+	addonList := &addonv1alpha1.ManagedClusterAddOnList{}
+	if err := c.client.List(context.TODO(), addonList); err != nil {
+		return errors.Wrapf(err, "failed to list managed cluster addons")
+	}
+	clusterGatewayAddon := make([]*addonv1alpha1.ManagedClusterAddOn, 0)
+	for _, addon := range addonList.Items {
+		addon := addon
+		if addon.Name == common.AddonName {
+			clusterGatewayAddon = append(clusterGatewayAddon, &addon)
+		}
+	}
+	for _, addon := range clusterGatewayAddon {
+		managedServiceAccount := buildManagedServiceAccount(addon)
+		if err := c.client.Create(context.TODO(), managedServiceAccount); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return errors.Wrapf(err, "failed to create managed serviceaccount")
+			}
+		}
+
+		if err := c.copySecretForManagedServiceAccount(
+			clusterAddon,
+			config,
+			addon.Namespace); err != nil {
+			return errors.Wrapf(err, "failed to copy secret from managed serviceaccount")
+		}
+	}
+	return nil
+}
+
+func (c *ClusterGatewayInstaller) copySecretForManagedServiceAccount(addon *addonv1alpha1.ClusterManagementAddOn, config *proxyv1alpha1.ClusterGatewayConfiguration, clusterName string) error {
+	endpointType := clusterv1alpha1.ClusterEndpointTypeConst
+	if config.Spec.Egress.Type == proxyv1alpha1.EgressTypeClusterProxy {
+		endpointType = clusterv1alpha1.ClusterEndpointTypeClusterProxy
+	}
+	gatewaySecretNamespace := config.Spec.SecretNamespace
+	secretName := config.Spec.SecretManagement.ManagedServiceAccount.Name
+
+	secret, err := c.secretLister.Secrets(clusterName).
+		Get(secretName)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get token secret")
+		}
+		return nil
+	}
+	currentSecret, err := c.secretLister.Secrets(gatewaySecretNamespace).Get(clusterName)
+	shouldCreate := false
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get the cluster secret")
+		}
+		shouldCreate = true
+	}
+	if shouldCreate {
+		if _, err := c.nativeClient.CoreV1().Secrets(gatewaySecretNamespace).
+			Create(context.TODO(),
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: gatewaySecretNamespace,
+						Name:      clusterName,
+						Labels: map[string]string{
+							clusterv1alpha1.LabelKeyClusterCredentialType: string(clusterv1alpha1.CredentialTypeServiceAccountToken),
+							clusterv1alpha1.LabelKeyClusterEndpointType:   endpointType,
+						},
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: addonv1alpha1.GroupVersion.String(),
+								Kind:       "ClusterManagementAddOn",
+								UID:        addon.UID,
+								Name:       addon.Name,
+							},
+						},
+					},
+					Type: corev1.SecretTypeOpaque,
+					Data: map[string][]byte{
+						corev1.ServiceAccountRootCAKey: secret.Data[corev1.ServiceAccountRootCAKey],
+						corev1.ServiceAccountTokenKey:  secret.Data[corev1.ServiceAccountTokenKey],
+					},
+				},
+				metav1.CreateOptions{}); err != nil {
+			return errors.Wrapf(err, "failed to create the cluster secret")
+		}
+	} else {
+		if bytes.Equal(secret.Data[corev1.ServiceAccountTokenKey], currentSecret.Data[corev1.ServiceAccountTokenKey]) {
+			return nil // no need for an update
+		}
+		currentSecret.Data[corev1.ServiceAccountRootCAKey] = secret.Data[corev1.ServiceAccountRootCAKey]
+		currentSecret.Data[corev1.ServiceAccountTokenKey] = secret.Data[corev1.ServiceAccountTokenKey]
+		if _, err := c.nativeClient.CoreV1().Secrets(gatewaySecretNamespace).
+			Update(context.TODO(), currentSecret, metav1.UpdateOptions{}); err != nil {
+			return errors.Wrapf(err, "failed to update the cluster secret")
 		}
 	}
 	return nil
@@ -567,5 +682,33 @@ func newAPFClusterRoleBinding(addon *addonv1alpha1.ClusterManagementAddOn, names
 			},
 		},
 	}
+}
 
+func buildManagedServiceAccount(addon *addonv1alpha1.ManagedClusterAddOn) *ocmauthv1alpha1.ManagedServiceAccount {
+	return &ocmauthv1alpha1.ManagedServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "authentication.open-cluster-management.io/v1alpha1",
+			Kind:       "ManagedServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: addon.Namespace,
+			Name:      common.AddonName,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: addonv1alpha1.GroupVersion.String(),
+					Kind:       "ManagedClusterAddOn",
+					UID:        addon.UID,
+					Name:       addon.Name,
+				},
+			},
+		},
+		Spec: ocmauthv1alpha1.ManagedServiceAccountSpec{
+			Rotation: ocmauthv1alpha1.ManagedServiceAccountRotation{
+				Enabled: true,
+				Validity: metav1.Duration{
+					Duration: time.Hour * 24 * 180,
+				},
+			},
+		},
+	}
 }
