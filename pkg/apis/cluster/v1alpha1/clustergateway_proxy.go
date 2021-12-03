@@ -28,11 +28,15 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 
 	"github.com/pkg/errors"
+	v1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	apiproxy "k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/apis/audit"
+	"k8s.io/apiserver/pkg/audit/event"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	registryrest "k8s.io/apiserver/pkg/registry/rest"
@@ -41,6 +45,7 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource/resourcerest"
 	contextutil "sigs.k8s.io/apiserver-runtime/pkg/util/context"
+	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 )
 
 var _ resource.SubResource = &ClusterGatewayProxy{}
@@ -106,6 +111,48 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 		Method: strings.ToUpper(reqInfo.Verb),
 	})
 	proxyReqInfo.Verb = reqInfo.Verb
+
+	if config.ProxyLocalAuthorization {
+		user, _ := request.UserFrom(ctx)
+		var attr authorizer.Attributes
+		if proxyReqInfo.IsResourceRequest {
+			attr, _ = event.NewAttributes(&audit.Event{
+				User: v1.UserInfo{
+					Username: user.GetName(),
+					UID:      user.GetUID(),
+					Groups:   user.GetGroups(),
+				},
+				ObjectRef: &audit.ObjectReference{
+					APIGroup:    proxyReqInfo.APIGroup,
+					APIVersion:  proxyReqInfo.APIVersion,
+					Resource:    proxyReqInfo.Resource,
+					Subresource: proxyReqInfo.Subresource,
+					Namespace:   proxyReqInfo.Namespace,
+					Name:        proxyReqInfo.Name,
+				},
+				Verb: proxyReqInfo.Verb,
+			})
+		} else {
+			attr, _ = event.NewAttributes(&audit.Event{
+				User: v1.UserInfo{
+					Username: user.GetName(),
+					UID:      user.GetUID(),
+					Groups:   user.GetGroups(),
+				},
+				ObjectRef:  nil,
+				RequestURI: proxyReqInfo.Path,
+				Verb:       proxyReqInfo.Verb,
+			})
+		}
+
+		decision, reason, err := loopback.GetAuthorizer().Authorize(ctx, attr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "authorization failed due to %s", reason)
+		}
+		if decision != authorizer.DecisionAllow {
+			return nil, fmt.Errorf("proxying by user %v is forbidden authorization failed", user.GetName())
+		}
+	}
 
 	return &proxyHandler{
 		parentName:     id,

@@ -35,8 +35,9 @@ func main() {
 		// +kubebuilder:scaffold:resource-register
 		WithResource(&clusterv1alpha1.ClusterGateway{}).
 		WithLocalDebugExtension().
-		DisableAuthorization().
+		//DisableAuthorization().
 		ExposeLoopbackMasterClientConfig().
+		ExposeLoopbackAuthorizer().
 		WithoutEtcd().
 		WithOptionsFns(func(options *builder.ServerOptions) *builder.ServerOptions {
 			if err := config.ValidateSecret(); err != nil {
@@ -53,6 +54,7 @@ func main() {
 	}
 	config.AddSecretFlags(cmd.Flags())
 	config.AddClusterProxyFlags(cmd.Flags())
+	config.AddProxyAuthorizationFlags(cmd.Flags())
 	cmd.Flags().BoolVarP(&options.OCMIntegration, "ocm-integration", "", false,
 		"Enabling OCM integration, reading cluster CA and api endpoint from managed "+
 			"cluster.")
