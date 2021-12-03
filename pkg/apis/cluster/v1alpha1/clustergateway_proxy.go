@@ -112,7 +112,7 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 	})
 	proxyReqInfo.Verb = reqInfo.Verb
 
-	if config.ProxyLocalAuthorization {
+	if config.AuthorizateProxySubpath {
 		user, _ := request.UserFrom(ctx)
 		var attr authorizer.Attributes
 		if proxyReqInfo.IsResourceRequest {

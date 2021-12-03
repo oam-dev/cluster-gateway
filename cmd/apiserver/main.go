@@ -35,7 +35,6 @@ func main() {
 		// +kubebuilder:scaffold:resource-register
 		WithResource(&clusterv1alpha1.ClusterGateway{}).
 		WithLocalDebugExtension().
-		//DisableAuthorization().
 		ExposeLoopbackMasterClientConfig().
 		ExposeLoopbackAuthorizer().
 		WithoutEtcd().

@@ -4,9 +4,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var ProxyLocalAuthorization bool
+var AuthorizateProxySubpath bool
 
 func AddProxyAuthorizationFlags(set *pflag.FlagSet) {
-	set.BoolVarP(&ProxyLocalAuthorization, "proxy-local-authorization", "", false,
-		"do authorization locally before proxy request")
+	set.BoolVarP(&AuthorizateProxySubpath, "authorize-proxy-subpath", "", false,
+		"perform an additional delegated authorization against the hub cluster for the target proxying path when invoking clustergateway/proxy subresource")
 }
