@@ -837,8 +837,8 @@ github.com/yeya24/promlinter v0.1.0/go.mod h1:rs5vtZzeBHqqMwXqFScncpCF6u06lezhZe
 github.com/yudai/gojsondiff v1.0.0/go.mod h1:AY32+k2cwILAkW1fbgxQ5mUmMiZFgLIV+FBNExI05xg=
 github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82/go.mod h1:lgjkn3NuSvDfVJdfcVVdX+jpBxNmX4rDAzaS45IcYoM=
 github.com/yudai/pp v2.0.1+incompatible/go.mod h1:PuxR/8QJ7cyCkFp/aUDS+JY727OFEZkTdatxwunjIkc=
-github.com/yue9944882/managed-serviceaccount v0.0.31 h1:PDUR80gcc/xecF5BvJzntq3efL+oixfSiRyZDl8UqN8=
-github.com/yue9944882/managed-serviceaccount v0.0.31/go.mod h1:pibwxJlKDE0r59JGF8IGw4zaxSNA0Z20t9QmRL5wYaM=
+github.com/yue9944882/managed-serviceaccount v0.0.32 h1:QZRO4aisEotalPqtxUCynUBSAYoZcfou8N7qmgvXMAo=
+github.com/yue9944882/managed-serviceaccount v0.0.32/go.mod h1:D0DMSNH92z1aVpBexiYXdbrgnv+tG6alxqPSym8DLOk=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

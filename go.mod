@@ -30,6 +30,6 @@ require (
 )
 
 replace (
-	open-cluster-management.io/managed-serviceaccount v0.0.0 => github.com/yue9944882/managed-serviceaccount v0.0.31
+	open-cluster-management.io/managed-serviceaccount v0.0.0 => github.com/yue9944882/managed-serviceaccount v0.0.32
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24
 )
