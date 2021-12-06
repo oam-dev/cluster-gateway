@@ -75,7 +75,7 @@ func buildClusterGatewayOutboundPermission(serviceAccountNamespace, serviceAccou
 	const clusterRoleName = "open-cluster-management:cluster-gateway:default"
 	clusterGatewayClusterRole := &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "rbac.authorization.k8s.io",
+			APIVersion: "rbac.authorization.k8s.io/v1",
 			Kind:       "ClusterRole",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -101,7 +101,7 @@ func buildClusterGatewayOutboundPermission(serviceAccountNamespace, serviceAccou
 	}
 	clusterGatewayClusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "rbac.authorization.k8s.io",
+			APIVersion: "rbac.authorization.k8s.io/v1",
 			Kind:       "ClusterRoleBinding",
 		},
 		ObjectMeta: metav1.ObjectMeta{

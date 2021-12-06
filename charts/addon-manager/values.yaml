@@ -1,5 +1,5 @@
 # Image of the cluster-gateway instances
-image: yue9944882/cluster-gateway-addon-manager:v1.1.7.fix.2
+image: yue9944882/cluster-gateway-addon-manager:v1.1.7.fix.3
 
 clusterGateway:
   image: oamdev/cluster-gateway:v1.1.7
