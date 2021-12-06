@@ -83,19 +83,9 @@ func buildClusterGatewayOutboundPermission(serviceAccountNamespace, serviceAccou
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				APIGroups: []string{"apps"},
+				APIGroups: []string{"*"},
 				Verbs:     []string{"*"},
-				Resources: []string{"controllerrevisions"},
-			},
-			{
-				APIGroups: []string{"core.oam.dev"},
-				Verbs:     []string{"*"},
-				Resources: []string{"resourcetrackers", "resourcetrackers/status"},
-			},
-			{
-				APIGroups: []string{"apiextensions.k8s.io"},
-				Verbs:     []string{"get", "list", "create", "update"},
-				Resources: []string{"customresourcedefinitions"},
+				Resources: []string{"*"},
 			},
 		},
 	}
