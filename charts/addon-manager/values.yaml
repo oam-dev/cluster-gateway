@@ -1,5 +1,5 @@
 # Image of the cluster-gateway instances
-image: yue9944882/cluster-gateway-addon-manager:v1.1.7.fix.3
+image: oamdev/cluster-gateway-addon-manager:v1.1.7.ocm.1
 
 clusterGateway:
   image: oamdev/cluster-gateway:v1.1.7
@@ -7,3 +7,6 @@ clusterGateway:
   secretNamespace: open-cluster-management-credentials
 # Number of replicas
 replicas: 1
+
+manualSecretManagement: true
+konnectivityEgress: false

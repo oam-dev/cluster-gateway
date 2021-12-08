@@ -45,7 +45,7 @@ func NewConfigFromCluster(c *ClusterGateway) (*restclient.Config, error) {
 			config.ClusterProxyHost,
 			nil)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		tunnel, err := konnectivity.CreateSingleUseGrpcTunnel(
 			context.TODO(),
@@ -53,7 +53,7 @@ func NewConfigFromCluster(c *ClusterGateway) (*restclient.Config, error) {
 			grpc.WithTransportCredentials(grpccredentials.NewTLS(tlsCfg)),
 		)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		cfg.Dial = tunnel.DialContext
 	}

@@ -33,13 +33,6 @@ func (s *SecretHandler) Generic(event event.GenericEvent, q workqueue.RateLimiti
 
 func (s *SecretHandler) process(secret *corev1.Secret, q workqueue.RateLimitingInterface) {
 	for _, ref := range secret.OwnerReferences {
-		if ref.Kind == "ClusterManagementAddOn" {
-			q.Add(reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: ref.Name,
-				},
-			})
-		}
 		if ref.Kind == "ManagedServiceAccount" && ref.Name == common.AddonName {
 			q.Add(reconcile.Request{
 				NamespacedName: types.NamespacedName{

@@ -7,10 +7,15 @@ spec:
   installNamespace: {{ .Values.clusterGateway.installNamespace }}
   secretNamespace: {{ .Values.clusterGateway.secretNamespace }}
   secretManagement:
+  {{ if .Values.manualSecretManagement }}
+    type: Manual
+  {{ else }}
     type: ManagedServiceAccount
     managedServiceAccount:
       name: cluster-gateway
+  {{ end }}
   egress:
+  {{ if .Values.konnectivityEgress }}
     type: ClusterProxy
     clusterProxy:
       proxyServerHost: "proxy-entrypoint.open-cluster-management-addon"
@@ -19,3 +24,6 @@ spec:
         namespace: open-cluster-management-addon
         proxyClientCASecretName: proxy-server-ca
         proxyClientSecretName: proxy-client
+  {{ else }}
+    type: Direct
+  {{ end }}

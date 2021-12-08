@@ -11,7 +11,6 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/util"
 	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	nativescheme "k8s.io/client-go/kubernetes/scheme"
@@ -102,15 +101,6 @@ func main() {
 
 	ctx := context.Background()
 	go informerFactory.Start(ctx.Done())
-
-	if _, err := mgr.GetRESTMapper().KindFor(schema.GroupVersionResource{
-		Group:    ocmauthv1alpha1.GroupVersion.Group,
-		Version:  ocmauthv1alpha1.GroupVersion.Version,
-		Resource: "managedserviceaccounts",
-	}); err != nil {
-		setupLog.Error(err, "is managed service account installed in the hub cluster?")
-		os.Exit(1)
-	}
 
 	addonManager, err := addonmanager.New(mgr.GetConfig())
 	if err != nil {

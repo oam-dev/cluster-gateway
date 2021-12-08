@@ -115,7 +115,7 @@ manifests: controller-gen
 		output:crd:artifacts:config=hack/crd/bases
 
 ocm-addon-manager:
-	docker build -t yue9944882/cluster-gateway-addon-manager:${IMG_TAG} \
+	docker build -t oamdev/cluster-gateway-addon-manager:${IMG_TAG} \
 		-f cmd/addon-manager/Dockerfile \
 		.
 
