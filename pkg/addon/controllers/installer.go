@@ -7,32 +7,36 @@ import (
 	"strconv"
 	"time"
 
-	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
-	proxyv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/proxy/v1alpha1"
-	"github.com/oam-dev/cluster-gateway/pkg/common"
-	"github.com/oam-dev/cluster-gateway/pkg/event"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"k8s.io/utils/pointer"
-	"open-cluster-management.io/addon-framework/pkg/certrotation"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	ocmauthv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"open-cluster-management.io/addon-framework/pkg/certrotation"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	ocmauthv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
+
+	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	proxyv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/proxy/v1alpha1"
+	"github.com/oam-dev/cluster-gateway/pkg/common"
+	"github.com/oam-dev/cluster-gateway/pkg/event"
 )
 
 var (
@@ -47,6 +51,7 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 		secretLister: secretLister,
 		cache:        mgr.GetCache(),
 		client:       mgr.GetClient(),
+		mapper:       mgr.GetRESTMapper(),
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&addonv1alpha1.ClusterManagementAddOn{}).
@@ -61,7 +66,26 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 			&source.Kind{
 				Type: &corev1.Secret{},
 			},
+			&handler.EnqueueRequestForOwner{
+				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
+			}).
+		Watches(
+			&source.Kind{
+				Type: &corev1.Secret{},
+			},
 			&event.SecretHandler{}).
+		Watches(
+			&source.Kind{
+				Type: &appsv1.Deployment{},
+			},
+			&handler.EnqueueRequestForOwner{
+				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
+			}).
+		Watches(
+			&source.Kind{
+				Type: &apiregistrationv1.APIService{},
+			},
+			&event.APIServiceHandler{}).
 		Complete(installer)
 }
 
@@ -71,6 +95,7 @@ type ClusterGatewayInstaller struct {
 	caPair       *crypto.CA
 	client       client.Client
 	cache        cache.Cache
+	mapper       meta.RESTMapper
 }
 
 const (
@@ -144,11 +169,11 @@ func (c *ClusterGatewayInstaller) Reconcile(ctx context.Context, request reconci
 		return reconcile.Result{}, errors.Wrapf(err, "failed encoding CA cert")
 	}
 
+	// create if not exists
 	namespace := clusterGatewayConfiguration.Spec.InstallNamespace
 	targets := []client.Object{
 		newServiceAccount(addon, namespace),
 		newClusterGatewayService(addon, namespace),
-		newClusterGatewayDeployment(addon, clusterGatewayConfiguration),
 		newAuthenticationRole(addon, namespace),
 		newSecretRole(addon, clusterGatewayConfiguration.Spec.SecretNamespace),
 		newSecretRoleBinding(addon, namespace, clusterGatewayConfiguration.Spec.SecretNamespace),
@@ -162,6 +187,10 @@ func (c *ClusterGatewayInstaller) Reconcile(ctx context.Context, request reconci
 				return reconcile.Result{}, errors.Wrapf(err, "failed deploying cluster-gateway")
 			}
 		}
+	}
+
+	if err := c.ensureClusterGatewayDeployment(addon, clusterGatewayConfiguration); err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "failed ensuring cluster-gateway deployment")
 	}
 
 	// always update apiservice
@@ -211,6 +240,40 @@ func (c *ClusterGatewayInstaller) ensureAPIService(addon *addonv1alpha1.ClusterM
 	return nil
 }
 
+func (c *ClusterGatewayInstaller) ensureClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, config *proxyv1alpha1.ClusterGatewayConfiguration) error {
+	currentClusterGateway := &appsv1.Deployment{}
+	if err := c.client.Get(context.TODO(), types.NamespacedName{
+		Namespace: config.Spec.InstallNamespace,
+		Name:      "gateway-deployment",
+	}, currentClusterGateway); err != nil {
+		if apierrors.IsNotFound(err) {
+			clusterGateway := newClusterGatewayDeployment(addon, config)
+			if err := c.client.Create(context.TODO(), clusterGateway); err != nil {
+				return err
+			}
+			return nil
+		}
+		return err
+	}
+	genStr, ok := currentClusterGateway.Labels[labelKeyClusterGatewayConfigurationGeneration]
+	if ok {
+		gen, err := strconv.Atoi(genStr)
+		if err != nil {
+			return err
+		}
+		if config.Generation == int64(gen) {
+			return nil
+		}
+	}
+
+	clusterGateway := newClusterGatewayDeployment(addon, config)
+	clusterGateway.ResourceVersion = currentClusterGateway.ResourceVersion
+	if err := c.client.Update(context.TODO(), clusterGateway); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *ClusterGatewayInstaller) ensureClusterProxySecrets(config *proxyv1alpha1.ClusterGatewayConfiguration) error {
 	if config.Spec.Egress.Type != proxyv1alpha1.EgressTypeClusterProxy {
 		return nil
@@ -250,6 +313,13 @@ func (c *ClusterGatewayInstaller) ensureClusterProxySecrets(config *proxyv1alpha
 func (c *ClusterGatewayInstaller) ensureSecretManagement(clusterAddon *addonv1alpha1.ClusterManagementAddOn, config *proxyv1alpha1.ClusterGatewayConfiguration) error {
 	if config.Spec.SecretManagement.Type != proxyv1alpha1.SecretManagementTypeManagedServiceAccount {
 		return nil
+	}
+	if _, err := c.mapper.KindFor(schema.GroupVersionResource{
+		Group:    ocmauthv1alpha1.GroupVersion.Group,
+		Version:  ocmauthv1alpha1.GroupVersion.Version,
+		Resource: "managedserviceaccounts",
+	}); err != nil {
+		return fmt.Errorf("failed to discover ManagedServiceAccount resource in the cluster")
 	}
 	addonList := &addonv1alpha1.ManagedClusterAddOnList{}
 	if err := c.client.List(context.TODO(), addonList); err != nil {
@@ -368,6 +438,8 @@ func newServiceAccount(addon *addonv1alpha1.ClusterManagementAddOn, namespace st
 	}
 }
 
+const labelKeyClusterGatewayConfigurationGeneration = "proxy.open-cluster-management.io/configuration-generation"
+
 func newClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, config *proxyv1alpha1.ClusterGatewayConfiguration) *appsv1.Deployment {
 	args := []string{
 		"--secure-port=9443",
@@ -438,7 +510,7 @@ func newClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, co
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: config.Spec.InstallNamespace,
-			Name:      common.AddonName,
+			Name:      "gateway-deployment",
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: addonv1alpha1.GroupVersion.String(),
@@ -446,6 +518,9 @@ func newClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, co
 					UID:        addon.UID,
 					Name:       addon.Name,
 				},
+			},
+			Labels: map[string]string{
+				labelKeyClusterGatewayConfigurationGeneration: strconv.Itoa(int(config.Generation)),
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
