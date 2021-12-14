@@ -114,10 +114,17 @@ manifests: controller-gen
 		rbac:roleName=manager-role \
 		output:crd:artifacts:config=hack/crd/bases
 
+gateway:
+	docker build -t oamdev/cluster-gateway:${IMG_TAG} \
+		-f cmd/cluster-gateway/Dockerfile \
+		.
+
 ocm-addon-manager:
 	docker build -t oamdev/cluster-gateway-addon-manager:${IMG_TAG} \
 		-f cmd/addon-manager/Dockerfile \
 		.
+
+image: gateway ocm-addon-manager
 
 e2e-binary:
 	go test -c ./e2e/
