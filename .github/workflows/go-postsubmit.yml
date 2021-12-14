@@ -1,0 +1,38 @@
+name: GoPostSubmit
+
+on:
+  push:
+    branches:
+      - master
+      - release-*
+  workflow_dispatch: {}
+
+env:
+  # Common versions
+  GO_VERSION: '1.16'
+  GO_REQUIRED_MIN_VERSION: ''
+  GOPATH: '/home/runner/work/oamdev/cluster-gateway/go'
+defaults:
+  run:
+    working-directory: go/src/oamdev/cluster-gateway
+
+jobs:
+  verify:
+    name: latest-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: go/src/oamdev/cluster-gateway
+      - name: install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: image
+        run: make image
+      - name: push
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login quay.io --username ${{ secrets.DOCKER_USER }} --password-stdin
+          docker push oamdev/cluster-gateway:latest
