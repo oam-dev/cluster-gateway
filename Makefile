@@ -116,7 +116,7 @@ manifests: controller-gen
 
 gateway:
 	docker build -t oamdev/cluster-gateway:${IMG_TAG} \
-		-f cmd/cluster-gateway/Dockerfile \
+		-f cmd/apiserver/Dockerfile \
 		.
 
 ocm-addon-manager:
