@@ -1,5 +1,5 @@
 # Image of the cluster-gateway instances
-image: oamdev/cluster-gateway-addon-manager:v1.1.7.ocm.1
+image: oamdev/cluster-gateway-addon-manager:v1.1.7.ocm.2
 
 clusterGateway:
   image: oamdev/cluster-gateway:v1.1.7
