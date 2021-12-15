@@ -1,0 +1,50 @@
+name: GoRelease
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+env:
+  # Common versions
+  GO_VERSION: '1.16'
+  GO_REQUIRED_MIN_VERSION: ''
+  GOPATH: '/home/runner/work/oamdev/cluster-gateway/go'
+  GITHUB_REF: ${{ github.ref }}
+
+defaults:
+  run:
+    working-directory: go/src/oamdev/cluster-gateway
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: go/src/oamdev/cluster-gateway
+      - name: install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: images
+        run:  make image
+      - name: get release version
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: get major release version
+        run: |
+          echo "MAJOR_RELEASE_VERSION=${RELEASE_VERSION%.*}" >> $GITHUB_ENV
+      - name: push image
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
+          docker tag oamdev/cluster-gateway:latest oamdev/cluster-gateway:$RELEASE_VERSION
+          docker tag oamdev/cluster-gateway-addon-manager:latest oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
+          docker push oamdev/cluster-gateway:$RELEASE_VERSION
+          docker push oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
+      - name: publish release
+        uses: softprops/action-gh-release@v0.1.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

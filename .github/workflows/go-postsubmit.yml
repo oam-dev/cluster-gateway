@@ -36,3 +36,4 @@ jobs:
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
           docker push oamdev/cluster-gateway:latest
+          docker push oamdev/cluster-gateway-addon-manager:latest
