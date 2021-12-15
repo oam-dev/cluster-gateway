@@ -8,16 +8,13 @@ import (
 	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	controllers "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -32,43 +29,10 @@ func main() {
 			if err != nil {
 				return err
 			}
-			cfg.Wrap(multicluster.NewClusterGatewayRoundTripper)
-
-			// Native kubernetes client example
-			nativeClient := kubernetes.NewForConfigOrDie(cfg)
-			defaultNs, err := nativeClient.CoreV1().Namespaces().Get(
-				multicluster.WithMultiClusterContext(context.TODO(), clusterName),
-				"default",
-				metav1.GetOptions{})
-			fmt.Printf("Native client get default namespace: %v\n", defaultNs)
-
-			// Controller-runtime client example
-			controllerRuntimeClient, err := client.New(cfg, client.Options{})
-			if err != nil {
-				panic(err)
-			}
-			ns := &corev1.Namespace{}
-			err = controllerRuntimeClient.Get(
-				multicluster.WithMultiClusterContext(context.TODO(), clusterName),
-				types.NamespacedName{Name: "default"},
-				ns)
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("Controller-runtime client get default namespace: %v\n", ns)
-
-			//
-			// with enhance cluster gateway roundtripper
-			//
-
-			enCfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-			if err != nil {
-				return err
-			}
-			enCfg.Wrap(multicluster.NewEnhanceClusterGatewayRoundTripper(clusterName).NewRoundTripper)
+			cfg.Wrap(multicluster.NewEnhanceClusterGatewayRoundTripper(clusterName).NewRoundTripper)
 
 			// Native kubernetes client informer
-			nativeClient = kubernetes.NewForConfigOrDie(enCfg)
+			nativeClient := kubernetes.NewForConfigOrDie(cfg)
 
 			sharedInformer := informers.NewSharedInformerFactory(nativeClient, 0)
 			podInformer := sharedInformer.Core().V1().Pods().Informer()
@@ -87,7 +51,7 @@ func main() {
 			s := runtime.NewScheme()
 			scheme.AddToScheme(s)
 
-			mgr, err := controllers.NewManager(enCfg, manager.Options{Scheme: s})
+			mgr, err := controllers.NewManager(cfg, manager.Options{Scheme: s})
 
 			podInformer2, err := mgr.GetCache().GetInformer(context.TODO(), &corev1.Pod{})
 			if err != nil {
