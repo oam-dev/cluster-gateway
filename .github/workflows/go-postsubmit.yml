@@ -34,5 +34,5 @@ jobs:
         run: make image
       - name: push
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login quay.io --username ${{ secrets.DOCKER_USER }} --password-stdin
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
           docker push oamdev/cluster-gateway:latest
