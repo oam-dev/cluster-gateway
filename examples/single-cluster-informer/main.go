@@ -29,7 +29,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			cfg.Wrap(multicluster.NewEnhanceClusterGatewayRoundTripper(clusterName).NewRoundTripper)
+			cfg.Wrap(multicluster.NewProxyPathPrependingClusterGatewayRoundTripper(clusterName).NewRoundTripper)
 
 			// Native kubernetes client informer
 			nativeClient := kubernetes.NewForConfigOrDie(cfg)
@@ -53,17 +53,17 @@ func main() {
 
 			mgr, err := controllers.NewManager(cfg, manager.Options{Scheme: s})
 
-			podInformer2, err := mgr.GetCache().GetInformer(context.TODO(), &corev1.Pod{})
+			runtimePodInformer, err := mgr.GetCache().GetInformer(context.TODO(), &corev1.Pod{})
 			if err != nil {
 				return err
 			}
 
 			fmt.Printf("Controller-runtime cache pod info:\n")
-			podInformer2.AddEventHandler(cache.ResourceEventHandlerFuncs{AddFunc: addFunc})
+			runtimePodInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{AddFunc: addFunc})
 
 			ctx, cancel = context.WithCancel(context.TODO())
 			go mgr.Start(ctx)
-			for !podInformer2.HasSynced() {
+			for !runtimePodInformer.HasSynced() {
 				time.Sleep(time.Millisecond * 100)
 			}
 			cancel()
