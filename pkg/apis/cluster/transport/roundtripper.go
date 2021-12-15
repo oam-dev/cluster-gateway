@@ -8,20 +8,6 @@ import (
 	clusterapi "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 )
 
-func NewClusterGatewayRoundTripper(delegate http.RoundTripper) http.RoundTripper {
-	return &clusterGatewayRoundTripper{
-		delegate: delegate,
-		fallback: true,
-	}
-
-}
-func NewStrictClusterGatewayRoundTripper(delegate http.RoundTripper, fallback bool) http.RoundTripper {
-	return &clusterGatewayRoundTripper{
-		delegate: delegate,
-		fallback: false,
-	}
-}
-
 var _ http.RoundTripper = &clusterGatewayRoundTripper{}
 
 type clusterGatewayRoundTripper struct {
@@ -30,6 +16,20 @@ type clusterGatewayRoundTripper struct {
 	// this is required when the client does implicit api discovery
 	// e.g. controller-runtime client
 	fallback bool
+}
+
+func NewClusterGatewayRoundTripper(delegate http.RoundTripper) http.RoundTripper {
+	return &clusterGatewayRoundTripper{
+		delegate: delegate,
+		fallback: true,
+	}
+}
+
+func NewStrictClusterGatewayRoundTripper(delegate http.RoundTripper, fallback bool) http.RoundTripper {
+	return &clusterGatewayRoundTripper{
+		delegate: delegate,
+		fallback: false,
+	}
 }
 
 func (c *clusterGatewayRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
