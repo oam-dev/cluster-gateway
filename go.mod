@@ -22,14 +22,11 @@ require (
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
 	open-cluster-management.io/addon-framework v0.1.1-0.20211214072539-e51264d353a2
 	open-cluster-management.io/api v0.5.0
-	open-cluster-management.io/managed-serviceaccount v0.0.0
+	open-cluster-management.io/managed-serviceaccount v0.1.0
 	sigs.k8s.io/apiserver-network-proxy v0.0.24
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24
 	sigs.k8s.io/apiserver-runtime v1.0.3-0.20210913073608-0663f60bfee2
 	sigs.k8s.io/controller-runtime v0.9.5
 )
 
-replace (
-	open-cluster-management.io/managed-serviceaccount v0.0.0 => github.com/yue9944882/managed-serviceaccount v0.0.32
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24
-)
+replace sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24
