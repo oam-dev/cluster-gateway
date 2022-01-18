@@ -17,6 +17,7 @@ var RunID = rand.String(6)
 type Framework interface {
 	HubRESTConfig() *rest.Config
 	TestClusterName() string
+	IsOCMInstalled() bool
 
 	HubNativeClient() kubernetes.Interface
 	HubRuntimeClient() client.Client
@@ -59,6 +60,10 @@ func (f *framework) HubRuntimeClient() client.Client {
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return runtimeClient
+}
+
+func (f *framework) IsOCMInstalled() bool {
+	return f.ctx.IsOCMInstalled
 }
 
 func (f *framework) TestClusterName() string {

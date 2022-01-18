@@ -40,12 +40,14 @@ var _ = Describe("Basic RoundTrip Test", func() {
 	It("ManagedCluster present",
 		func() {
 			By("Getting ManagedCluster")
-			runtimeClient := f.HubRuntimeClient()
-			cluster := &clusterv1.ManagedCluster{}
-			err := runtimeClient.Get(context.TODO(), types.NamespacedName{
-				Name: f.TestClusterName(),
-			}, cluster)
-			Expect(err).NotTo(HaveOccurred())
+			if f.IsOCMInstalled() {
+				runtimeClient := f.HubRuntimeClient()
+				cluster := &clusterv1.ManagedCluster{}
+				err := runtimeClient.Get(context.TODO(), types.NamespacedName{
+					Name: f.TestClusterName(),
+				}, cluster)
+				Expect(err).NotTo(HaveOccurred())
+			}
 		})
 
 	It("ClusterGateway can be read via GET",

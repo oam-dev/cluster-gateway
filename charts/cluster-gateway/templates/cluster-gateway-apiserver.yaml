@@ -25,7 +25,8 @@ spec:
             secretName: proxy-server-ca
       containers:
         - name: gateway
-          image: {{ .Values.image }}
+          image: {{ .Values.image }}:{{ .Values.tag }}
+          imagePullPolicy: IfNotPresent
           args:
             - --secure-port=9443
             - --secret-namespace={{ .Values.secretNamespace }}
