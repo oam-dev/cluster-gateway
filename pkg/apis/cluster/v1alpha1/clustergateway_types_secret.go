@@ -101,8 +101,14 @@ func (in *ClusterGateway) List(ctx context.Context, opt *internalversion.ListOpt
 			if cluster, ok := clustersByName[secret.Name]; ok {
 				gw, err := convertFromManagedClusterAndSecret(cluster, &secret)
 				if err != nil {
-					klog.Warningf("skipping %v: failed converting clustergateway resource",
-						secret.Name)
+					klog.Warningf("skipping %v: failed converting clustergateway resource", secret.Name)
+					continue
+				}
+				list.Items = append(list.Items, *gw)
+			} else {
+				gw, err := convertFromSecret(&secret)
+				if err != nil {
+					klog.Warningf("skipping %v: failed converting clustergateway resource", secret.Name)
 					continue
 				}
 				list.Items = append(list.Items, *gw)
@@ -134,12 +140,16 @@ func (in *ClusterGateway) ConvertToTable(ctx context.Context, object runtime.Obj
 }
 
 func initClientOnce() {
-	// TODO: better client instance injection?
 	initClient.Do(func() {
-		klog.Infof("Master loopback client: %v", loopback.GetLoopbackMasterClientConfig().Host)
-		kubeClient = kubernetes.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig())
-		ocmClient = ocmclient.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig())
+		setClient(
+			kubernetes.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig()),
+			ocmclient.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig()))
 	})
+}
+
+func setClient(k kubernetes.Interface, o ocmclient.Interface) {
+	kubeClient = k
+	ocmClient = o
 }
 
 func convertFromSecret(clusterSecret *v1.Secret) (*ClusterGateway, error) {
@@ -199,7 +209,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	// converting endpoint
 	endpointType, ok := secret.Labels[LabelKeyClusterEndpointType]
 	if !ok {
-		endpointType = ClusterEndpointTypeConst
+		endpointType = string(ClusterEndpointTypeConst)
 	}
 	switch ClusterEndpointType(endpointType) {
 	case ClusterEndpointTypeClusterProxy:
