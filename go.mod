@@ -3,6 +3,7 @@ module github.com/oam-dev/cluster-gateway
 go 1.16
 
 require (
+	github.com/ghodss/yaml v1.0.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
 	github.com/openshift/library-go v0.0.0-20210916194400-ae21aab32431

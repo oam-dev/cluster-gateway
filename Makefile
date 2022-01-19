@@ -127,8 +127,11 @@ ocm-addon-manager:
 image: gateway ocm-addon-manager
 
 e2e-binary:
-	go test -c ./e2e/
+	mkdir -p bin
+	go test -o bin/e2e -c ./e2e/
 
 e2e-bench-binary:
 	go test -c ./e2e/benchmark/
 
+test-e2e: e2e-binary
+	./bin/e2e --test-cluster=loopback
