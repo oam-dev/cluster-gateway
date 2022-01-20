@@ -68,6 +68,9 @@ func (c *clusterGatewayAddonManager) GetAgentAddonOptions() agent.AgentAddonOpti
 	return agent.AgentAddonOptions{
 		AddonName:       common.AddonName,
 		InstallStrategy: agent.InstallAllStrategy(common.InstallNamespace),
+		HealthProber: &agent.HealthProber{
+			Type: agent.HealthProberTypeNone, // TODO: switch to ManifestWork-based prober
+		},
 	}
 }
 
