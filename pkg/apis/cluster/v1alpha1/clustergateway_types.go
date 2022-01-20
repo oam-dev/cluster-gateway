@@ -98,11 +98,11 @@ type ClusterEndpoint struct {
 const (
 	// ClusterEndpointTypeConst prescribes requesting kube-apiserver via
 	// a fixed endpoint url.
-	ClusterEndpointTypeConst = "Const"
+	ClusterEndpointTypeConst ClusterEndpointType = "Const"
 	// ClusterEndpointTypeClusterProxy prescribes requesting kube-apiserver
 	// through the konnectivity tunnel. Note that no explicit endpoint are
 	// required under ClusterProxy mode.
-	ClusterEndpointTypeClusterProxy = "ClusterProxy"
+	ClusterEndpointTypeClusterProxy ClusterEndpointType = "ClusterProxy"
 )
 
 type ClusterEndpointConst struct {
