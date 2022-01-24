@@ -19,13 +19,13 @@ import (
 	"net/http"
 	"strings"
 
-	"k8s.io/client-go/transport"
-
 	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned/scheme"
 	contextutil "github.com/oam-dev/cluster-gateway/pkg/util/context"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/transport"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,6 +38,9 @@ type ClusterGatewayExpansion interface {
 	RoundTripperForCluster(clusterName string) http.RoundTripper
 	RoundTripperForClusterFromContext() http.RoundTripper
 	RoundTripperForClusterFromContextWrapper(http.RoundTripper) http.RoundTripper
+
+	GetHealthiness(ctx context.Context, name string, options metav1.GetOptions) (*v1alpha1.ClusterGateway, error)
+	UpdateHealthiness(ctx context.Context, clusterGateway *v1alpha1.ClusterGateway, options metav1.UpdateOptions) (*v1alpha1.ClusterGateway, error)
 }
 
 func (c *clusterGateways) RESTClient(clusterName string) rest.Interface {
@@ -108,4 +111,29 @@ func (p gatewayAPIPrefixPrepender) RoundTrip(req *http.Request) (*http.Response,
 	fullPath := prefix + p.clusterNameGetter(req.Context()) + "/proxy" + originalPath
 	req.URL.Path = fullPath
 	return p.delegate.RoundTrip(req)
+}
+
+func (c *clusterGateways) GetHealthiness(ctx context.Context, name string, options metav1.GetOptions) (*v1alpha1.ClusterGateway, error) {
+	result := &v1alpha1.ClusterGateway{}
+	err := c.client.Get().
+		Resource("clustergateways").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		SubResource("health").
+		Do(ctx).
+		Into(result)
+	return result, err
+}
+
+func (c *clusterGateways) UpdateHealthiness(ctx context.Context, clusterGateway *v1alpha1.ClusterGateway, options metav1.UpdateOptions) (*v1alpha1.ClusterGateway, error) {
+	result := &v1alpha1.ClusterGateway{}
+	err := c.client.Put().
+		Resource("clustergateways").
+		Name(clusterGateway.Name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Body(clusterGateway).
+		SubResource("health").
+		Do(ctx).
+		Into(result)
+	return result, err
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/component-base/featuregate"
+	k8stesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 	ocmclientfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -36,6 +40,7 @@ func init() {
 func TestConvertSecretToGateway(t *testing.T) {
 	cases := []struct {
 		name            string
+		featureGate     featuregate.Feature
 		inputSecret     *corev1.Secret
 		expectedFailure bool
 		expected        *ClusterGateway
@@ -207,13 +212,15 @@ func TestConvertSecretToGateway(t *testing.T) {
 			},
 		},
 		{
-			name: "healthiness conversion (x509)",
+			name:        "healthiness conversion (x509)",
+			featureGate: featuregates.HealthinessCheck,
 			inputSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: testNamespace,
 					Name:      testName,
 					Annotations: map[string]string{
-						AnnotationKeyClusterGatewayStatusHealthy: "True",
+						AnnotationKeyClusterGatewayStatusHealthy:       "True",
+						AnnotationKeyClusterGatewayStatusHealthyReason: "MyReason",
 					},
 					Labels: map[string]string{
 						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
@@ -249,13 +256,17 @@ func TestConvertSecretToGateway(t *testing.T) {
 					},
 				},
 				Status: ClusterGatewayStatus{
-					Healthy: true,
+					Healthy:       true,
+					HealthyReason: "MyReason",
 				},
 			},
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			if len(c.featureGate) > 0 {
+				defer k8stesting.SetFeatureGateDuringTest(t, feature.DefaultMutableFeatureGate, c.featureGate, true)()
+			}
 			gw, err := convertFromSecret(c.inputSecret)
 			if c.expectedFailure {
 				assert.True(t, err != nil)

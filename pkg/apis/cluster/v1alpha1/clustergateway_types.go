@@ -168,9 +168,23 @@ func (in *ClusterGatewayList) GetListMeta() *metav1.ListMeta {
 	return &in.ListMeta
 }
 
+type HealthyReasonType string
+
+const (
+	HealthyReasonTypeClusterGatewayNotRegistered HealthyReasonType = "ClusterGatewayNotRegistered"
+	HealthyReasonTypeCertificateMismatch         HealthyReasonType = "CertificateMismatch"
+	HealthyReasonTypeConnectionTimeout           HealthyReasonType = "ConnectionTimeout"
+	HealthyReasonTypeUnknownPrefix               HealthyReasonType = "Unknown:"
+)
+
 // ClusterGatewayStatus defines the observed state of ClusterGateway
 type ClusterGatewayStatus struct {
+	// Healthy indicates whether the cluster is healthy.
+	// If the `HealthinessCheck` feature gate is enabled, calling proxy
+	// subresource upon unhealthy clusters will be rejected.
 	Healthy bool `json:"healthy,omitempty"`
+	// HealthyReason is the reason explaining the cluster's healthiness.
+	HealthyReason HealthyReasonType `json:"healthyReason,omitempty"`
 }
 
 var _ resource.ObjectWithArbitrarySubResource = &ClusterGateway{}
@@ -178,5 +192,6 @@ var _ resource.ObjectWithArbitrarySubResource = &ClusterGateway{}
 func (in *ClusterGateway) GetArbitrarySubResources() []resource.ArbitrarySubResource {
 	return []resource.ArbitrarySubResource{
 		&ClusterGatewayProxy{},
+		&ClusterGatewayHealth{},
 	}
 }

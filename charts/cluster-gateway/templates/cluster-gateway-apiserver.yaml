@@ -40,6 +40,9 @@ spec:
             - --proxy-key=/etc/tls/tls.key
             {{ end }}
             {{ end }}
+            {{ if .Values.featureGate.healthiness }}
+            - --feature-gates=HealthinessCheck=true
+            {{ end }}
             # TODO: certificate rotation, otherwise the self-signed will expire in 1 year
           {{ if .Values.ocmIntegration.clusterProxy.enabled }}
           volumeMounts:

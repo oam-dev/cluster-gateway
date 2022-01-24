@@ -5,6 +5,7 @@ import (
 
 	"github.com/oam-dev/cluster-gateway/e2e/framework"
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
@@ -77,6 +78,29 @@ var _ = Describe("Basic RoundTrip Test", func() {
 			if !clusterFound {
 				Fail(`ClusterGateway not found`)
 			}
+		})
+
+	It("ClusterGateway healthiness can be manipulated",
+		func() {
+			By("get healthiness")
+			gw, err := f.HubGatewayClient().
+				ClusterV1alpha1().
+				ClusterGateways().
+				GetHealthiness(context.TODO(), f.TestClusterName(), metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(gw).ShouldNot(BeNil())
+			Expect(gw.Status.Healthy).To(BeFalse())
+			By("update healthiness")
+			gw.Status.Healthy = true
+			gw.Status.HealthyReason = clusterv1alpha1.HealthyReasonTypeConnectionTimeout
+			updated, err := f.HubGatewayClient().
+				ClusterV1alpha1().
+				ClusterGateways().
+				UpdateHealthiness(context.TODO(), gw, metav1.UpdateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updated).NotTo(BeNil())
+			Expect(updated.Status.Healthy).To(BeTrue())
+			Expect(updated.Status.HealthyReason).To(Equal(clusterv1alpha1.HealthyReasonTypeConnectionTimeout))
 		})
 
 })

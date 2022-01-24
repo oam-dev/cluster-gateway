@@ -1,6 +1,7 @@
 package framework
 
 import (
+	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -21,6 +22,7 @@ type Framework interface {
 
 	HubNativeClient() kubernetes.Interface
 	HubRuntimeClient() client.Client
+	HubGatewayClient() versioned.Interface
 }
 
 var _ Framework = &framework{}
@@ -60,6 +62,13 @@ func (f *framework) HubRuntimeClient() client.Client {
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return runtimeClient
+}
+
+func (f *framework) HubGatewayClient() versioned.Interface {
+	cfg := f.HubRESTConfig()
+	gatewayClient, err := versioned.NewForConfig(cfg)
+	Expect(err).NotTo(HaveOccurred())
+	return gatewayClient
 }
 
 func (f *framework) IsOCMInstalled() bool {
