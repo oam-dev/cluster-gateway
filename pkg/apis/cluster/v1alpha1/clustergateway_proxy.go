@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,7 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	registryrest "k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/util/feature"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
@@ -97,6 +99,12 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 	parentObj, err := parentStorage.Get(ctx, id, &metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("no such cluster %v", id)
+	}
+	clusterGateway := parentObj.(*ClusterGateway)
+	if feature.DefaultMutableFeatureGate.Enabled(featuregates.HealthinessCheck) {
+		if !clusterGateway.Status.Healthy {
+			return nil, fmt.Errorf("unhealthy cluster: %v", id)
+		}
 	}
 
 	reqInfo, _ := request.RequestInfoFrom(ctx)
@@ -158,7 +166,7 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 		parentName:     id,
 		path:           proxyOpts.Path,
 		impersonate:    proxyOpts.Impersonate,
-		clusterGateway: parentObj.(*ClusterGateway),
+		clusterGateway: clusterGateway,
 		responder:      r,
 		finishFunc: func(code int) {
 			metrics.RecordProxiedRequestsByResource(proxyReqInfo.Resource, proxyReqInfo.Verb, code)
@@ -194,6 +202,11 @@ type proxyHandler struct {
 	finishFunc     func(code int)
 }
 
+var (
+	apiPrefix = "/apis/" + config.MetaApiGroupName + "/" + config.MetaApiVersionName + "/clustergateways/"
+	apiSuffix = "/proxy"
+)
+
 func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	cluster := p.clusterGateway
 	if cluster.Spec.Access.Credential == nil {
@@ -212,8 +225,6 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 	host, _, _ := net.SplitHostPort(urlAddr.Host)
-	apiPrefix := "/apis/" + config.MetaApiGroupName + "/" + config.MetaApiVersionName + "/clustergateways/"
-	apiSuffix := "/proxy"
 	path := strings.TrimPrefix(request.URL.Path, apiPrefix+p.parentName+apiSuffix)
 	newReq.Host = host
 	newReq.URL.Path = path

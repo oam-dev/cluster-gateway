@@ -24,6 +24,8 @@ import (
 
 	// +kubebuilder:scaffold:resource-imports
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+
+	_ "github.com/oam-dev/cluster-gateway/pkg/featuregates"
 )
 
 func main() {
