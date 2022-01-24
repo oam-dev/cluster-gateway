@@ -3,15 +3,14 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
 
-	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
@@ -23,6 +22,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 )
 
@@ -32,6 +33,16 @@ var _ rest.Lister = &ClusterGateway{}
 var initClient sync.Once
 var kubeClient kubernetes.Interface
 var ocmClient ocmclient.Interface
+
+// Conversion between corev1.Secret and ClusterGateway:
+//   1. Storing credentials under the secret's data including X.509 key-pair or token.
+//   2. Extending the spec of ClusterGateway by the secret's label.
+//   3. Extending the status of ClusterGateway by the secrets' annotation.
+// NOTE: Because the secret resource is designed to have no "metadata.generation" field,
+// the ClusterGateway resource also misses the generation tracking.
+const (
+	AnnotationKeyClusterGatewayStatusHealthy = "status.cluster.core.oam.dev/healthy"
+)
 
 func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOptions) (runtime.Object, error) {
 	initClientOnce()
@@ -60,6 +71,7 @@ func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOpt
 
 func (in *ClusterGateway) List(ctx context.Context, opt *internalversion.ListOptions) (runtime.Object, error) {
 	if opt.Watch {
+		// TODO: convert watch events from both Secret and ManagedCluster
 		return nil, fmt.Errorf("watch not supported")
 	}
 	initClientOnce()
@@ -177,10 +189,7 @@ func getEndpointFromManagedCluster(managedCluster *clusterv1.ManagedCluster) ([]
 }
 
 func getEndpointFromSecret(secret *v1.Secret) ([]byte, string, error) {
-	endpoint, ok := secret.Data["endpoint"]
-	if !ok {
-		return nil, "", fmt.Errorf("invalid secret: missing key %q", "endpoint")
-	}
+	endpoint := secret.Data["endpoint"]
 	endpointStr := string(endpoint)
 	endpointStr = strings.TrimSuffix(endpointStr, "\n")
 
@@ -219,6 +228,9 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	case ClusterEndpointTypeConst:
 		fallthrough // backward compatibility
 	default:
+		if len(apiServerEndpoint) == 0 {
+			return nil, errors.New("missing label key: api-endpoint")
+		}
 		if insecure {
 			c.Spec.Access.Endpoint = &ClusterEndpoint{
 				Type: ClusterEndpointType(endpointType),
@@ -263,5 +275,14 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	default:
 		return nil, fmt.Errorf("unrecognized secret credential type %v", credentialType)
 	}
+
+	if healthyRaw, ok := secret.Annotations[AnnotationKeyClusterGatewayStatusHealthy]; ok {
+		healthy, err := strconv.ParseBool(healthyRaw)
+		if err != nil {
+			return nil, fmt.Errorf("unrecogized healthiness status: %v", healthyRaw)
+		}
+		c.Status.Healthy = healthy
+	}
+
 	return c, nil
 }

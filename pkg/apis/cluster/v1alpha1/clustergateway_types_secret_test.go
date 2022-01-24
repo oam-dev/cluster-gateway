@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/utils/pointer"
 	ocmclientfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
@@ -140,6 +141,85 @@ func TestConvertSecretToGateway(t *testing.T) {
 					},
 				},
 				Data: map[string][]byte{
+					"ca.crt":  []byte(testCAData),
+					"tls.crt": []byte(testCertData),
+					"tls.key": []byte(testKeyData),
+				},
+			},
+			expected: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testName,
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Credential: &ClusterAccessCredential{
+							Type: CredentialTypeX509Certificate,
+							X509: &X509{
+								Certificate: []byte(testCertData),
+								PrivateKey:  []byte(testKeyData),
+							},
+						},
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeClusterProxy,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "insecure conversion",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+					Name:      testName,
+					Labels: map[string]string{
+						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+					},
+				},
+				Data: map[string][]byte{
+					"tls.crt":  []byte(testCertData),
+					"tls.key":  []byte(testKeyData),
+					"endpoint": []byte(testEndpoint),
+				},
+			},
+			expected: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testName,
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Credential: &ClusterAccessCredential{
+							Type: CredentialTypeX509Certificate,
+							X509: &X509{
+								Certificate: []byte(testCertData),
+								PrivateKey:  []byte(testKeyData),
+							},
+						},
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								Address:  testEndpoint,
+								Insecure: pointer.Bool(true),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "healthiness conversion (x509)",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+					Name:      testName,
+					Annotations: map[string]string{
+						AnnotationKeyClusterGatewayStatusHealthy: "True",
+					},
+					Labels: map[string]string{
+						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+					},
+				},
+				Data: map[string][]byte{
 					"ca.crt":   []byte(testCAData),
 					"tls.crt":  []byte(testCertData),
 					"tls.key":  []byte(testKeyData),
@@ -160,9 +240,16 @@ func TestConvertSecretToGateway(t *testing.T) {
 							},
 						},
 						Endpoint: &ClusterEndpoint{
-							Type: ClusterEndpointTypeClusterProxy,
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								CABundle: []byte(testCAData),
+								Address:  testEndpoint,
+							},
 						},
 					},
+				},
+				Status: ClusterGatewayStatus{
+					Healthy: true,
 				},
 			},
 		},
