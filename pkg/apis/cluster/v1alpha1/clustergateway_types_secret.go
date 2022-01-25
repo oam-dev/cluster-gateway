@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
 
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
@@ -41,7 +43,8 @@ var ocmClient ocmclient.Interface
 // NOTE: Because the secret resource is designed to have no "metadata.generation" field,
 // the ClusterGateway resource also misses the generation tracking.
 const (
-	AnnotationKeyClusterGatewayStatusHealthy = "status.cluster.core.oam.dev/healthy"
+	AnnotationKeyClusterGatewayStatusHealthy       = "status.cluster.core.oam.dev/healthy"
+	AnnotationKeyClusterGatewayStatusHealthyReason = "status.cluster.core.oam.dev/healthy-reason"
 )
 
 func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOptions) (runtime.Object, error) {
@@ -276,12 +279,17 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 		return nil, fmt.Errorf("unrecognized secret credential type %v", credentialType)
 	}
 
-	if healthyRaw, ok := secret.Annotations[AnnotationKeyClusterGatewayStatusHealthy]; ok {
-		healthy, err := strconv.ParseBool(healthyRaw)
-		if err != nil {
-			return nil, fmt.Errorf("unrecogized healthiness status: %v", healthyRaw)
+	if feature.DefaultMutableFeatureGate.Enabled(featuregates.HealthinessCheck) {
+		if healthyRaw, ok := secret.Annotations[AnnotationKeyClusterGatewayStatusHealthy]; ok {
+			healthy, err := strconv.ParseBool(healthyRaw)
+			if err != nil {
+				return nil, fmt.Errorf("unrecogized healthiness status: %v", healthyRaw)
+			}
+			c.Status.Healthy = healthy
 		}
-		c.Status.Healthy = healthy
+		if healthyReason, ok := secret.Annotations[AnnotationKeyClusterGatewayStatusHealthyReason]; ok {
+			c.Status.HealthyReason = HealthyReasonType(healthyReason)
+		}
 	}
 
 	return c, nil
