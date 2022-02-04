@@ -7,7 +7,7 @@
 ```shell
 docker build \
   -t "cluster-gateway:v0.0.0-non-etcd" \
-  -f cmd/non-etcd-apiserver/Dockerfile .
+  -f cmd/apiserver/Dockerfile .
 ```
 
 2. Spawn a local KinD cluster:
@@ -127,7 +127,7 @@ subjects:
 
 ```shell
 $ KUBECONFIG=/tmp/hub.kubeconfig kubectl api-resources | grep clustergateway
-$ KUBECONFIG=/tmp/hub.kubeconfig kubectl get clustergateway foo # A 404 error is expected
+$ KUBECONFIG=/tmp/hub.kubeconfig kubectl get clustergateway # A 404 error is expected
 ```
 
 ### Proxying Multi-Cluster
