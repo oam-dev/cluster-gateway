@@ -24,6 +24,13 @@ rules:
     verbs:
       - "*"
   - apiGroups:
+      - cluster.core.oam.dev
+    resources:
+      - clustergateways/health
+      - clustergateways/proxy
+    verbs:
+      - "*"
+  - apiGroups:
       - ""
     resources:
       - namespaces

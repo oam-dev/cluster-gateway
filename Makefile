@@ -130,8 +130,15 @@ e2e-binary:
 	mkdir -p bin
 	go test -o bin/e2e -c ./e2e/
 
+e2e-binary-ocm:
+	mkdir -p bin
+	go test -o bin/e2e.ocm -c ./e2e/ocm/
+
 e2e-bench-binary:
 	go test -c ./e2e/benchmark/
 
 test-e2e: e2e-binary
 	./bin/e2e --test-cluster=loopback
+
+test-e2e-ocm: e2e-binary-ocm
+	./bin/e2e.ocm --test-cluster=loopback

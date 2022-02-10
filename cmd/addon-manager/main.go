@@ -98,6 +98,10 @@ func main() {
 		setupLog.Error(err, "unable to setup installer")
 		os.Exit(1)
 	}
+	if err := controllers.SetupClusterGatewayHealthProberWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup health prober")
+		os.Exit(1)
+	}
 
 	ctx := context.Background()
 	go informerFactory.Start(ctx.Done())

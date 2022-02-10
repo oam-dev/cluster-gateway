@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
-	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 
 	"github.com/pkg/errors"
@@ -41,7 +40,6 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	registryrest "k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/apiserver/pkg/util/feature"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
@@ -101,11 +99,6 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 		return nil, fmt.Errorf("no such cluster %v", id)
 	}
 	clusterGateway := parentObj.(*ClusterGateway)
-	if feature.DefaultMutableFeatureGate.Enabled(featuregates.HealthinessCheck) {
-		if !clusterGateway.Status.Healthy {
-			return nil, fmt.Errorf("unhealthy cluster: %v", id)
-		}
-	}
 
 	reqInfo, _ := request.RequestInfoFrom(ctx)
 	factory := request.RequestInfoFactory{

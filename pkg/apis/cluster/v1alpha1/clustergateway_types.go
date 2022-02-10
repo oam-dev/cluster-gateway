@@ -182,7 +182,7 @@ type ClusterGatewayStatus struct {
 	// Healthy indicates whether the cluster is healthy.
 	// If the `HealthinessCheck` feature gate is enabled, calling proxy
 	// subresource upon unhealthy clusters will be rejected.
-	Healthy bool `json:"healthy,omitempty"`
+	Healthy bool `json:"healthy"`
 	// HealthyReason is the reason explaining the cluster's healthiness.
 	HealthyReason HealthyReasonType `json:"healthyReason,omitempty"`
 }
