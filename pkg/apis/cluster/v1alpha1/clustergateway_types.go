@@ -192,5 +192,6 @@ var _ resource.ObjectWithArbitrarySubResource = &ClusterGateway{}
 func (in *ClusterGateway) GetArbitrarySubResources() []resource.ArbitrarySubResource {
 	return []resource.ArbitrarySubResource{
 		&ClusterGatewayProxy{},
+		&ClusterGatewayHealth{},
 	}
 }

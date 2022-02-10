@@ -15,3 +15,6 @@ ocmIntegration:
     endpoint:
       host: proxy-entrypoint.open-cluster-management-cluster-proxy
       port: 8090
+
+featureGate:
+  healthiness: false
