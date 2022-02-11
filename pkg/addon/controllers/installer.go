@@ -448,6 +448,7 @@ func newClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, co
 		"--ocm-integration=true",
 		"--tls-cert-file=/etc/server/tls.crt",
 		"--tls-private-key-file=/etc/server/tls.key",
+		"--feature-gates=HealthinessCheck=true",
 	}
 	volumes := []corev1.Volume{
 		{
@@ -673,7 +674,7 @@ func newSecretRole(addon *addonv1alpha1.ClusterManagementAddOn, secretNamespace 
 			{
 				APIGroups: []string{""},
 				Resources: []string{"secrets"},
-				Verbs:     []string{"get", "list", "watch"},
+				Verbs:     []string{"get", "list", "watch", "update"},
 			},
 		},
 	}

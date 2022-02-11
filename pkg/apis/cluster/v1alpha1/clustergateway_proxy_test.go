@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -75,39 +74,6 @@ func TestProxyHandler(t *testing.T) {
 			expectedFailure: true,
 			errorAssertFunc: func(t *testing.T, err error) {
 				assert.True(t, strings.HasPrefix(err.Error(), "no such cluster"))
-			},
-		},
-		{
-			name:        "not healthy",
-			featureGate: featuregates.HealthinessCheck,
-			parent: &fakeParentStorage{
-				obj: &ClusterGateway{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "myName",
-					},
-					Spec: ClusterGatewaySpec{
-						Access: ClusterAccess{
-							Credential: &ClusterAccessCredential{
-								Type:                CredentialTypeServiceAccountToken,
-								ServiceAccountToken: "myToken",
-							},
-						},
-					},
-					Status: ClusterGatewayStatus{
-						Healthy: false,
-					},
-				},
-			},
-			objName: "myName",
-			inputOption: &ClusterGatewayProxyOptions{
-				Path: "/abc",
-			},
-			reqInfo: request.RequestInfo{
-				Verb: "get",
-			},
-			expectedFailure: true,
-			errorAssertFunc: func(t *testing.T, err error) {
-				assert.True(t, strings.HasPrefix(err.Error(), "unhealthy cluster"))
 			},
 		},
 	}
