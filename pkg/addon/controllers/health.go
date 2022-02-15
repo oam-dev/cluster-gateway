@@ -6,6 +6,7 @@ import (
 
 	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
 	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"github.com/oam-dev/cluster-gateway/pkg/event"
 	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -50,6 +51,9 @@ func SetupClusterGatewayHealthProberWithManager(mgr ctrl.Manager) error {
 }
 
 func (c *ClusterGatewayHealthProber) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+	if request.Name != common.AddonName {
+		return reconcile.Result{}, nil
+	}
 	clusterName := request.Namespace
 	gw, err := c.gatewayClient.ClusterV1alpha1().
 		ClusterGateways().
