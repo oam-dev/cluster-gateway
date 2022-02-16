@@ -1,10 +1,10 @@
 # Image of the cluster-gateway instances
 image: oamdev/cluster-gateway-addon-manager
 
-tag: v1.1.10
+tag: v1.1.11
 
 clusterGateway:
-  image: oamdev/cluster-gateway:v1.1.10
+  image: oamdev/cluster-gateway:v1.1.11
   installNamespace: vela-system
   secretNamespace: open-cluster-management-credentials
 # Number of replicas

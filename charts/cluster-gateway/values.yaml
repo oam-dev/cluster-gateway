@@ -1,7 +1,7 @@
 # Image of the cluster-gateway instances
 image: oamdev/cluster-gateway
 
-tag: v1.1.10
+tag: v1.1.11
 
 # Number of replicas
 replicas: 1
