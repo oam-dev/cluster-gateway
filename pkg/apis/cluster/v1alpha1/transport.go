@@ -10,10 +10,32 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	grpccredentials "google.golang.org/grpc/credentials"
+	k8snet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
 )
+
+var DialerGetter = func() (k8snet.DialFunc, error) {
+	tlsCfg, err := util.GetClientTLSConfig(
+		config.ClusterProxyCAFile,
+		config.ClusterProxyCertFile,
+		config.ClusterProxyKeyFile,
+		config.ClusterProxyHost,
+		nil)
+	if err != nil {
+		return nil, err
+	}
+	tunnel, err := konnectivity.CreateSingleUseGrpcTunnel(
+		context.TODO(),
+		net.JoinHostPort(config.ClusterProxyHost, strconv.Itoa(config.ClusterProxyPort)),
+		grpc.WithTransportCredentials(grpccredentials.NewTLS(tlsCfg)),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tunnel.DialContext, nil
+}
 
 func NewConfigFromCluster(c *ClusterGateway) (*restclient.Config, error) {
 	cfg := &restclient.Config{}
@@ -29,33 +51,29 @@ func NewConfigFromCluster(c *ClusterGateway) (*restclient.Config, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		const missingPort = "missing port in address"
 		host, _, err := net.SplitHostPort(u.Host)
 		if err != nil {
-			return nil, err
+			addrErr, ok := err.(*net.AddrError)
+			if !ok {
+				return nil, err
+			}
+			if addrErr.Err != missingPort {
+				return nil, err
+			}
+			host = u.Host
 		}
 		cfg.ServerName = host // apiserver may listen on SNI cert
 	case ClusterEndpointTypeClusterProxy:
 		cfg.Host = c.Name // the same as the cluster name
 		cfg.Insecure = true
 		cfg.CAData = nil
-		tlsCfg, err := util.GetClientTLSConfig(
-			config.ClusterProxyCAFile,
-			config.ClusterProxyCertFile,
-			config.ClusterProxyKeyFile,
-			config.ClusterProxyHost,
-			nil)
+		dail, err := DialerGetter()
 		if err != nil {
 			return nil, err
 		}
-		tunnel, err := konnectivity.CreateSingleUseGrpcTunnel(
-			context.TODO(),
-			net.JoinHostPort(config.ClusterProxyHost, strconv.Itoa(config.ClusterProxyPort)),
-			grpc.WithTransportCredentials(grpccredentials.NewTLS(tlsCfg)),
-		)
-		if err != nil {
-			return nil, err
-		}
-		cfg.Dial = tunnel.DialContext
+		cfg.Dial = dail
 	}
 	// setting up credentials
 	switch c.Spec.Access.Credential.Type {
