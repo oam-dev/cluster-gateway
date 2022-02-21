@@ -15,12 +15,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	nativescheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	ocmauthv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var (
@@ -42,7 +42,9 @@ func main() {
 	var probeAddr string
 	var signerSecretName string
 
+	logger := klogr.New()
 	klog.SetOutput(os.Stdout)
+	klog.InitFlags(flag.CommandLine)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":48080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":48081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -50,13 +52,9 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&signerSecretName, "signer-secret-name", "cluster-gateway-signer",
 		"The name of the secret to store the signer CA")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	flag.Parse()
+	ctrl.SetLogger(logger)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
