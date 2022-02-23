@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	clusterapi "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	"github.com/oam-dev/cluster-gateway/pkg/config"
 )
 
 var _ http.RoundTripper = &clusterGatewayRoundTripper{}
@@ -48,8 +48,8 @@ func formatProxyURL(clusterName, originalPath string) string {
 	originalPath = strings.TrimPrefix(originalPath, "/")
 	return strings.Join([]string{
 		"/apis",
-		clusterapi.SchemeGroupVersion.Group,
-		clusterapi.SchemeGroupVersion.Version,
+		config.MetaApiGroupName,
+		config.MetaApiVersionName,
 		"clustergateways",
 		clusterName,
 		"proxy",
