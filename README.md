@@ -31,12 +31,15 @@ api-gateway solution:
 ## Image
 
 ```shell
-$ docker pull oamdev/cluster-gateway:v1.1.8 # Or other newer tags
+$ docker pull oamdev/cluster-gateway:v1.1.12 # Or other newer tags
 ```
 
 ## Documentation
 
-- __Run Local__: https://github.com/oam-dev/cluster-gateway/blob/master/docs/local-run.md
+- __Run locally__: https://github.com/oam-dev/cluster-gateway/blob/master/docs/local-run.md
+- __Sample cluster-gateway converting secret__:
+  - __ServiceAccountToken type secret__: https://github.com/oam-dev/cluster-gateway/blob/master/hack/samples/cluster-gateway-secret-serviceaccount-token.yaml
+  - __X.509 certificate type secret__: https://github.com/oam-dev/cluster-gateway/blob/master/hack/samples/cluster-gateway-secret-x509.yaml
 
 ### Performance
 
