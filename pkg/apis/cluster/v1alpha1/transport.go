@@ -5,18 +5,20 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	grpccredentials "google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
 )
 
-var DialerGetter = func() (k8snet.DialFunc, error) {
+var DialerGetter = func(ctx context.Context) (k8snet.DialFunc, error) {
 	tlsCfg, err := util.GetClientTLSConfig(
 		config.ClusterProxyCAFile,
 		config.ClusterProxyCertFile,
@@ -26,18 +28,21 @@ var DialerGetter = func() (k8snet.DialFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	tunnel, err := konnectivity.CreateSingleUseGrpcTunnel(
-		context.TODO(),
+	dialerTunnel, err := konnectivity.CreateSingleUseGrpcTunnel(
+		ctx,
 		net.JoinHostPort(config.ClusterProxyHost, strconv.Itoa(config.ClusterProxyPort)),
 		grpc.WithTransportCredentials(grpccredentials.NewTLS(tlsCfg)),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time: time.Second * 5,
+		}),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return tunnel.DialContext, nil
+	return dialerTunnel.DialContext, nil
 }
 
-func NewConfigFromCluster(c *ClusterGateway) (*restclient.Config, error) {
+func NewConfigFromCluster(ctx context.Context, c *ClusterGateway) (*restclient.Config, error) {
 	cfg := &restclient.Config{}
 	// setting up endpoint
 	switch c.Spec.Access.Endpoint.Type {
@@ -69,7 +74,7 @@ func NewConfigFromCluster(c *ClusterGateway) (*restclient.Config, error) {
 		cfg.Host = c.Name // the same as the cluster name
 		cfg.Insecure = true
 		cfg.CAData = nil
-		dail, err := DialerGetter()
+		dail, err := DialerGetter(ctx)
 		if err != nil {
 			return nil, err
 		}

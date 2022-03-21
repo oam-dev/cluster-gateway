@@ -224,7 +224,7 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	newReq.URL.RawQuery = request.URL.RawQuery
 	newReq.RequestURI = newReq.URL.RequestURI()
 
-	cfg, err := NewConfigFromCluster(cluster)
+	cfg, err := NewConfigFromCluster(request.Context(), cluster)
 	if err != nil {
 		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating cluster proxy client config %s", cluster.Name))
 		return
