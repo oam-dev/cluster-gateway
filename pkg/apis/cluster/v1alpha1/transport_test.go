@@ -21,7 +21,7 @@ func TestClusterRestConfigConversion(t *testing.T) {
 	testDialFunc := func(ctx context.Context, net, addr string) (net.Conn, error) {
 		return nil, nil
 	}
-	DialerGetter = func() (k8snet.DialFunc, error) {
+	DialerGetter = func(ctx context.Context) (k8snet.DialFunc, error) {
 		return testDialFunc, nil
 	}
 	cases := []struct {
@@ -176,7 +176,7 @@ func TestClusterRestConfigConversion(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			cfg, err := NewConfigFromCluster(c.clusterGateway)
+			cfg, err := NewConfigFromCluster(context.TODO(), c.clusterGateway)
 			if err != nil {
 				if c.expectFailure {
 					return
