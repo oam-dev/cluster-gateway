@@ -23,6 +23,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
+	clientgorest "k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -156,9 +157,11 @@ func (in *ClusterGateway) ConvertToTable(ctx context.Context, object runtime.Obj
 
 func initClientOnce() {
 	initClient.Do(func() {
+		copiedCfg := clientgorest.CopyConfig(loopback.GetLoopbackMasterClientConfig())
+		copiedCfg.RateLimiter = nil
 		setClient(
-			kubernetes.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig()),
-			ocmclient.NewForConfigOrDie(loopback.GetLoopbackMasterClientConfig()))
+			kubernetes.NewForConfigOrDie(copiedCfg),
+			ocmclient.NewForConfigOrDie(copiedCfg))
 	})
 }
 
