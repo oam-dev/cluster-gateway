@@ -2036,8 +2036,8 @@ mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed/go.mod h1:Xkxe497xwlCKkIa
 mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b/go.mod h1:2odslEg/xrtNQqCYg2/jCoyKnw3vv5biOc3JnIcYfL4=
 mvdan.cc/unparam v0.0.0-20210104141923-aac4ce9116a7/go.mod h1:hBpJkZE8H/sb+VRFvw2+rBpHNsTBcvSpk61hr8mzXZE=
 open-cluster-management.io/addon-framework v0.0.0-20211101093604-8c0b8f52ad78/go.mod h1:l/Z04p0tCQrjdx0QsmecRqmeabrnb4rz1TO5DPHflkY=
-open-cluster-management.io/addon-framework v0.2.1-0.20220207065614-325cd9f6e402 h1:mwpdkpDNntUIngq0Ads5dVWSOWeYgywKPwRrAH7RYHk=
-open-cluster-management.io/addon-framework v0.2.1-0.20220207065614-325cd9f6e402/go.mod h1:MDjrYGSmqIdpfwnKO5iP/6wreIMBeD0AIr0ePqBuFXs=
+open-cluster-management.io/addon-framework v0.2.1-0.20220317063747-100a0230a883 h1:NJdMI1w60WArizywHhUwEHU+Z/i3/fynuNU45e8pOKQ=
+open-cluster-management.io/addon-framework v0.2.1-0.20220317063747-100a0230a883/go.mod h1:8QG1fHwPCEdyRrzY2Jji+qhMmJl+/HzTpuSDVmeG+7s=
 open-cluster-management.io/api v0.0.0-20210916013819-2e58cdb938f9/go.mod h1:9qiA5h/8kvPQnJEOlAPHVjRO9a1jCmDhGzvgMBvXEaE=
 open-cluster-management.io/api v0.5.1-0.20220112073018-2d280a97a052 h1:W+0vJSBH5o2uKWNhCVySIjsiew7fe8KAN9aGnWXo9W8=
 open-cluster-management.io/api v0.5.1-0.20220112073018-2d280a97a052/go.mod h1:0IUTh8J+p4pv1THh1r9oO0luX9Z1FLDEAmvzW09qC0o=

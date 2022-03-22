@@ -21,7 +21,7 @@ require (
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/kube-aggregator v0.23.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
-	open-cluster-management.io/addon-framework v0.2.1-0.20220207065614-325cd9f6e402
+	open-cluster-management.io/addon-framework v0.2.1-0.20220317063747-100a0230a883
 	open-cluster-management.io/api v0.5.1-0.20220112073018-2d280a97a052
 	open-cluster-management.io/managed-serviceaccount v0.1.0
 	sigs.k8s.io/apiserver-network-proxy v0.0.24
@@ -45,7 +45,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-logr/logr v1.2.0 // indirect
-	github.com/go-logr/zapr v1.2.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
