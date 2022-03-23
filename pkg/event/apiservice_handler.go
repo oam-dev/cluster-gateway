@@ -12,11 +12,8 @@ import (
 
 var _ handler.EventHandler = &APIServiceHandler{}
 
-const (
-	clusterGatewayAPIServiceName = "v1alpha1.cluster.core.oam.dev"
-)
-
 type APIServiceHandler struct {
+	WatchingName string
 }
 
 func (a *APIServiceHandler) Create(event event.CreateEvent, q workqueue.RateLimitingInterface) {
@@ -36,7 +33,7 @@ func (a *APIServiceHandler) Generic(event event.GenericEvent, q workqueue.RateLi
 }
 
 func (a *APIServiceHandler) process(apiService *apiregistrationv1.APIService, q workqueue.RateLimitingInterface) {
-	if apiService.Name == clusterGatewayAPIServiceName {
+	if apiService.Name == a.WatchingName {
 		q.Add(reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name: common.AddonName,
