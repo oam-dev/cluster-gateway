@@ -55,7 +55,9 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 		mapper:       mgr.GetRESTMapper(),
 	}
 	return ctrl.NewControllerManagedBy(mgr).
+		// Watches ClusterManagementAddOn singleton
 		For(&addonv1alpha1.ClusterManagementAddOn{}).
+		// Watches ClusterGatewayConfiguration singleton
 		Watches(
 			&source.Kind{
 				Type: &proxyv1alpha1.ClusterGatewayConfiguration{},
@@ -63,6 +65,15 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 			&event.ClusterGatewayConfigurationHandler{
 				Client: mgr.GetClient(),
 			}).
+		// Watches ManagedClusterAddon.
+		Watches(
+			&source.Kind{
+				Type: &addonv1alpha1.ManagedClusterAddOn{},
+			},
+			&handler.EnqueueRequestForOwner{
+				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
+			}).
+		// Cluster-Gateway mTLS certificate should be actively reconciled
 		Watches(
 			&source.Kind{
 				Type: &corev1.Secret{},
@@ -70,11 +81,13 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 			&handler.EnqueueRequestForOwner{
 				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
 			}).
+		// Secrets rotated by ManagedServiceAccount should be actively reconciled
 		Watches(
 			&source.Kind{
 				Type: &corev1.Secret{},
 			},
 			&event.SecretHandler{}).
+		// Cluster-gateway apiserver instances should be actively reconciled
 		Watches(
 			&source.Kind{
 				Type: &appsv1.Deployment{},
@@ -82,11 +95,12 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 			&handler.EnqueueRequestForOwner{
 				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
 			}).
+		// APIService should be actively reconciled
 		Watches(
 			&source.Kind{
 				Type: &apiregistrationv1.APIService{},
 			},
-			&event.APIServiceHandler{}).
+			&event.APIServiceHandler{WatchingName: common.ClusterGatewayAPIServiceName}).
 		Complete(installer)
 }
 

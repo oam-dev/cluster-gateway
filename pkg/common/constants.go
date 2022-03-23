@@ -16,3 +16,7 @@ const (
 const (
 	InstallNamespace = "open-cluster-management-cluster-gateway"
 )
+
+const (
+	ClusterGatewayAPIServiceName = "v1alpha1.cluster.core.oam.dev"
+)
