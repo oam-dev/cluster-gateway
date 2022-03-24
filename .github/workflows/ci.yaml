@@ -88,6 +88,7 @@ jobs:
           helm install --create-namespace -n vela-system \
             cluster-gateway ./charts/cluster-gateway \
             --set featureGate.healthiness=true \
+            --set featureGate.secretCache=true \
             --set tag=latest
           kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
           go run ./e2e/env/prepare | kubectl apply -f -

@@ -18,3 +18,4 @@ ocmIntegration:
 
 featureGate:
   healthiness: false
+  secretCache: false

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
@@ -16,14 +17,17 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/feature"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	corev1informer "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	corev1lister "k8s.io/client-go/listers/core/v1"
 	clientgorest "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -36,6 +40,9 @@ var _ rest.Lister = &ClusterGateway{}
 var initClient sync.Once
 var kubeClient kubernetes.Interface
 var ocmClient ocmclient.Interface
+
+var secretInformer cache.SharedIndexInformer
+var secretLister corev1lister.SecretLister
 
 // Conversion between corev1.Secret and ClusterGateway:
 //   1. Storing credentials under the secret's data including X.509 key-pair or token.
@@ -50,10 +57,7 @@ const (
 
 func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOptions) (runtime.Object, error) {
 	initClientOnce()
-	clusterSecret, err := kubeClient.
-		CoreV1().
-		Secrets(config.SecretNamespace).
-		Get(ctx, name, metav1.GetOptions{})
+	clusterSecret, err := getSecretControl().Get(ctx, name)
 	if err != nil {
 		klog.Warningf("Failed getting secret %q/%q: %v", config.SecretNamespace, name, err)
 		return nil, err
@@ -79,20 +83,8 @@ func (in *ClusterGateway) List(ctx context.Context, opt *internalversion.ListOpt
 		return nil, fmt.Errorf("watch not supported")
 	}
 	initClientOnce()
-	requirement, err := labels.NewRequirement(
-		LabelKeyClusterCredentialType,
-		selection.Exists,
-		nil)
-	if err != nil {
-		return nil, err
-	}
 
-	clusterSecrets, err := kubeClient.
-		CoreV1().
-		Secrets(config.SecretNamespace).
-		List(ctx, metav1.ListOptions{
-			LabelSelector: labels.NewSelector().Add(*requirement).String(),
-		})
+	clusterSecrets, err := getSecretControl().List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -113,16 +105,16 @@ func (in *ClusterGateway) List(ctx context.Context, opt *internalversion.ListOpt
 			cluster := cluster
 			clustersByName[cluster.Name] = &cluster
 		}
-		for _, secret := range clusterSecrets.Items {
+		for _, secret := range clusterSecrets {
 			if cluster, ok := clustersByName[secret.Name]; ok {
-				gw, err := convertFromManagedClusterAndSecret(cluster, &secret)
+				gw, err := convertFromManagedClusterAndSecret(cluster, secret)
 				if err != nil {
 					klog.Warningf("skipping %v: failed converting clustergateway resource", secret.Name)
 					continue
 				}
 				list.Items = append(list.Items, *gw)
 			} else {
-				gw, err := convertFromSecret(&secret)
+				gw, err := convertFromSecret(secret)
 				if err != nil {
 					klog.Warningf("skipping %v: failed converting clustergateway resource", secret.Name)
 					continue
@@ -133,8 +125,8 @@ func (in *ClusterGateway) List(ctx context.Context, opt *internalversion.ListOpt
 		return list, nil
 	}
 
-	for _, secret := range clusterSecrets.Items {
-		gw, err := convertFromSecret(&secret)
+	for _, secret := range clusterSecrets {
+		gw, err := convertFromSecret(secret)
 		if err != nil {
 			klog.Errorf("failed converting secret to gateway: %v", err)
 			continue
@@ -162,12 +154,31 @@ func initClientOnce() {
 		setClient(
 			kubernetes.NewForConfigOrDie(copiedCfg),
 			ocmclient.NewForConfigOrDie(copiedCfg))
+		if feature.DefaultMutableFeatureGate.Enabled(featuregates.SecretCache) {
+			setInformer(kubeClient)
+		}
 	})
 }
 
 func setClient(k kubernetes.Interface, o ocmclient.Interface) {
 	kubeClient = k
 	ocmClient = o
+}
+
+var informerReadyTimeout = time.Second * 10
+
+func setInformer(k kubernetes.Interface) {
+	secretInformer = corev1informer.NewSecretInformer(k, config.SecretNamespace, 0, cache.Indexers{
+		cache.NamespaceIndex: cache.MetaNamespaceIndexFunc,
+	})
+	secretLister = corev1lister.NewSecretLister(secretInformer.GetIndexer())
+	go secretInformer.Run(context.Background().Done())
+	err := wait.PollImmediate(time.Second, informerReadyTimeout, func() (done bool, err error) {
+		return secretInformer.HasSynced(), nil
+	})
+	if err != nil {
+		klog.Fatalf("Failed initializing secret informer within %v: %v", informerReadyTimeout, err)
+	}
 }
 
 func convertFromSecret(clusterSecret *v1.Secret) (*ClusterGateway, error) {
@@ -282,7 +293,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 		return nil, fmt.Errorf("unrecognized secret credential type %v", credentialType)
 	}
 
-	if feature.DefaultMutableFeatureGate.Enabled(featuregates.HealthinessCheck) {
+	if utilfeature.DefaultMutableFeatureGate.Enabled(featuregates.HealthinessCheck) {
 		if healthyRaw, ok := secret.Annotations[AnnotationKeyClusterGatewayStatusHealthy]; ok {
 			healthy, err := strconv.ParseBool(healthyRaw)
 			if err != nil {
