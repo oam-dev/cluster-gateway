@@ -19,6 +19,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var (
+	healthLog = ctrl.Log.WithName("ClusterGatewayHealthProber")
+)
 var _ reconcile.Reconciler = &ClusterGatewayHealthProber{}
 
 type ClusterGatewayHealthProber struct {
@@ -71,7 +74,7 @@ func (c *ClusterGatewayHealthProber) Reconcile(ctx context.Context, request reco
 		if healthErr != nil {
 			healthErrMsg = healthErr.Error()
 		}
-		log.Info("Cluster unhealthy", "cluster", clusterName,
+		healthLog.Info("Cluster unhealthy", "cluster", clusterName,
 			"body", string(resp),
 			"error", healthErrMsg)
 	}
@@ -84,7 +87,7 @@ func (c *ClusterGatewayHealthProber) Reconcile(ctx context.Context, request reco
 		} else {
 			gw.Status.HealthyReason = ""
 		}
-		log.Info("Updating cluster healthiness",
+		healthLog.Info("Updating cluster healthiness",
 			"cluster", clusterName,
 			"healthy", healthy)
 		_, err = c.gatewayClient.ClusterV1alpha1().
@@ -100,7 +103,7 @@ func (c *ClusterGatewayHealthProber) Reconcile(ctx context.Context, request reco
 		return reconcile.Result{}, err
 	}
 	if healthy != meta.IsStatusConditionTrue(addon.Status.Conditions, addonv1alpha1.ManagedClusterAddOnConditionAvailable) {
-		log.Info("Updating addon healthiness",
+		healthLog.Info("Updating addon healthiness",
 			"cluster", clusterName,
 			"healthy", healthy)
 		healthyStatus := metav1.ConditionTrue
