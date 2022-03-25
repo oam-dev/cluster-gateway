@@ -18,7 +18,6 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
-
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 
