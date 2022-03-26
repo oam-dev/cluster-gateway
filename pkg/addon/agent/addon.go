@@ -54,8 +54,18 @@ func (c *clusterGatewayAddonManager) Manifests(cluster *clusterv1.ManagedCluster
 	}
 	switch cfg.Spec.SecretManagement.Type {
 	case proxyv1alpha1.SecretManagementTypeManagedServiceAccount:
+		managedServiceAccountAddon := &addonv1alpha1.ManagedClusterAddOn{}
+		if err := c.client.Get(
+			context.TODO(),
+			types.NamespacedName{},
+			managedServiceAccountAddon); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
 		return buildClusterGatewayOutboundPermission(
-			addon.Spec.InstallNamespace,
+			managedServiceAccountAddon.Spec.InstallNamespace,
 			cfg.Spec.SecretManagement.ManagedServiceAccount.Name), nil
 	case proxyv1alpha1.SecretManagementTypeManual:
 		fallthrough
