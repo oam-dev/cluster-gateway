@@ -38,6 +38,7 @@ import (
 	proxyv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/proxy/v1alpha1"
 	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"github.com/oam-dev/cluster-gateway/pkg/event"
+	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
 )
 
 var (
@@ -293,34 +294,19 @@ func (c *ClusterGatewayInstaller) ensureClusterProxySecrets(config *proxyv1alpha
 	if config.Spec.Egress.Type != proxyv1alpha1.EgressTypeClusterProxy {
 		return nil
 	}
-	namespace := config.Spec.Egress.ClusterProxy.Credentials.Namespace
-	proxyClientCASecret, err := c.nativeClient.CoreV1().
-		Secrets(namespace).
-		Get(context.TODO(), config.Spec.Egress.ClusterProxy.Credentials.ProxyClientCASecretName, metav1.GetOptions{})
+	proxyClientCASecretName := config.Spec.Egress.ClusterProxy.Credentials.ProxyClientCASecretName
+	err := cert.CopySecret(c.nativeClient,
+		config.Spec.Egress.ClusterProxy.Credentials.Namespace, proxyClientCASecretName,
+		config.Spec.InstallNamespace, proxyClientCASecretName)
 	if err != nil {
-		return errors.Wrapf(err, "failed getting proxy ca secret")
+		return errors.Wrapf(err, "failed copy secret %v", proxyClientCASecretName)
 	}
-	proxyClientSecret, err := c.nativeClient.CoreV1().
-		Secrets(namespace).
-		Get(context.TODO(), config.Spec.Egress.ClusterProxy.Credentials.ProxyClientSecretName, metav1.GetOptions{})
+	proxyClientSecretName := config.Spec.Egress.ClusterProxy.Credentials.ProxyClientSecretName
+	err = cert.CopySecret(c.nativeClient,
+		config.Spec.Egress.ClusterProxy.Credentials.Namespace, proxyClientSecretName,
+		config.Spec.InstallNamespace, proxyClientSecretName)
 	if err != nil {
-		return errors.Wrapf(err, "failed getting proxy ca secret")
-	}
-	proxyClientCASecret.Namespace = config.Spec.InstallNamespace
-	proxyClientCASecret.ResourceVersion = ""
-	proxyClientSecret.Namespace = config.Spec.InstallNamespace
-	proxyClientSecret.ResourceVersion = ""
-	if _, err := c.nativeClient.CoreV1().Secrets(config.Spec.InstallNamespace).
-		Create(context.TODO(), proxyClientCASecret, metav1.CreateOptions{}); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(err, "failed creating CA secret")
-		}
-	}
-	if _, err := c.nativeClient.CoreV1().Secrets(config.Spec.InstallNamespace).
-		Create(context.TODO(), proxyClientSecret, metav1.CreateOptions{}); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(err, "failed creating CA secret")
-		}
+		return errors.Wrapf(err, "failed copy secret %v", proxyClientSecretName)
 	}
 	return nil
 }
