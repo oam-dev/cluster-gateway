@@ -448,7 +448,7 @@ func newClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, co
 		"--ocm-integration=true",
 		"--tls-cert-file=/etc/server/tls.crt",
 		"--tls-private-key-file=/etc/server/tls.key",
-		"--feature-gates=HealthinessCheck=true",
+		"--feature-gates=HealthinessCheck=true,SecretCache=true",
 	}
 	volumes := []corev1.Volume{
 		{
