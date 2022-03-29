@@ -57,7 +57,10 @@ func (c *clusterGatewayAddonManager) Manifests(cluster *clusterv1.ManagedCluster
 		managedServiceAccountAddon := &addonv1alpha1.ManagedClusterAddOn{}
 		if err := c.client.Get(
 			context.TODO(),
-			types.NamespacedName{},
+			types.NamespacedName{
+				Namespace: cluster.Name,
+				Name:      "managed-serviceaccount",
+			},
 			managedServiceAccountAddon); err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, nil
