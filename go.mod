@@ -26,7 +26,7 @@ require (
 	open-cluster-management.io/managed-serviceaccount v0.1.0
 	sigs.k8s.io/apiserver-network-proxy v0.0.24
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.25
-	sigs.k8s.io/apiserver-runtime v1.0.3-0.20220209071149-232cdf19b8eb
+	sigs.k8s.io/apiserver-runtime v1.0.3
 	sigs.k8s.io/controller-runtime v0.11.0
 )
 
