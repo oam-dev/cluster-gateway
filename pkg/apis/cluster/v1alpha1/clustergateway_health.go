@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
+	"github.com/oam-dev/cluster-gateway/pkg/util/singleton"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -41,8 +43,7 @@ func (in *ClusterGatewayHealth) Get(ctx context.Context, name string, options *m
 }
 
 func (in *ClusterGatewayHealth) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
-	initClientOnce()
-	latestSecret, err := kubeClient.CoreV1().Secrets(config.SecretNamespace).Get(ctx, name, metav1.GetOptions{})
+	latestSecret, err := singleton.GetSecretControl().Get(ctx, name)
 	if err != nil {
 		return nil, false, err
 	}
@@ -56,7 +57,10 @@ func (in *ClusterGatewayHealth) Update(ctx context.Context, name string, objInfo
 	}
 	latestSecret.Annotations[AnnotationKeyClusterGatewayStatusHealthy] = strconv.FormatBool(updatingClusterGateway.Status.Healthy)
 	latestSecret.Annotations[AnnotationKeyClusterGatewayStatusHealthyReason] = string(updatingClusterGateway.Status.HealthyReason)
-	updated, err := kubeClient.CoreV1().Secrets(config.SecretNamespace).Update(ctx, latestSecret, metav1.UpdateOptions{})
+	updated, err := singleton.GetKubeClient().
+		CoreV1().
+		Secrets(config.SecretNamespace).
+		Update(ctx, latestSecret, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, false, err
 	}

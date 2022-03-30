@@ -383,8 +383,8 @@ func (c *ClusterGatewayInstaller) copySecretForManagedServiceAccount(addon *addo
 						Namespace: gatewaySecretNamespace,
 						Name:      clusterName,
 						Labels: map[string]string{
-							clusterv1alpha1.LabelKeyClusterCredentialType: string(clusterv1alpha1.CredentialTypeServiceAccountToken),
-							clusterv1alpha1.LabelKeyClusterEndpointType:   string(endpointType),
+							common.LabelKeyClusterCredentialType: string(clusterv1alpha1.CredentialTypeServiceAccountToken),
+							common.LabelKeyClusterEndpointType:   string(endpointType),
 						},
 						OwnerReferences: []metav1.OwnerReference{
 							{

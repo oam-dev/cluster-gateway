@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"os"
 	"path/filepath"
 
@@ -55,7 +56,7 @@ func main() {
 	if len(restConfig.BearerToken) > 0 {
 		// TODO
 	} else {
-		secret.Labels[v1alpha1.LabelKeyClusterCredentialType] = string(v1alpha1.CredentialTypeX509Certificate)
+		secret.Labels[common.LabelKeyClusterCredentialType] = string(v1alpha1.CredentialTypeX509Certificate)
 		secret.Data["tls.crt"] = restConfig.CertData
 		secret.Data["tls.key"] = restConfig.KeyData
 	}

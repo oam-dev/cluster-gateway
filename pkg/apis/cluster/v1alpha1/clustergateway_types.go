@@ -79,13 +79,6 @@ const (
 	CredentialTypeX509Certificate CredentialType = "X509Certificate"
 )
 
-var (
-	// LabelKeyClusterCredentialType describes the credential type in object label field
-	LabelKeyClusterCredentialType = config.MetaApiGroupName + "/cluster-credential-type"
-	// LabelKeyClusterEndpointType describes the endpoint type.
-	LabelKeyClusterEndpointType = config.MetaApiGroupName + "/cluster-endpoint-type"
-)
-
 type ClusterEndpointType string
 
 type ClusterEndpoint struct {

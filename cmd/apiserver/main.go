@@ -18,9 +18,9 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
+	"github.com/oam-dev/cluster-gateway/pkg/util/singleton"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
-
 	// +kubebuilder:scaffold:resource-imports
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 
@@ -48,6 +48,7 @@ func main() {
 			}
 			return options
 		}).
+		WithPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient).
 		Build()
 	if err != nil {
 		klog.Fatal(err)
