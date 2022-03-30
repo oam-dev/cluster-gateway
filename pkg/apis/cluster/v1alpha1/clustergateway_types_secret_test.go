@@ -4,9 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
+	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
+	"github.com/oam-dev/cluster-gateway/pkg/util/singleton"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,10 +35,6 @@ var (
 	testToken     = "token"
 	testEndpoint  = "https://localhost:443"
 )
-
-func init() {
-	initClient.Do(func() {})
-}
 
 func TestConvertSecretToGateway(t *testing.T) {
 	cases := []struct {
@@ -63,7 +62,7 @@ func TestConvertSecretToGateway(t *testing.T) {
 					Namespace: testNamespace,
 					Name:      testName,
 					Labels: map[string]string{
-						LabelKeyClusterCredentialType: string(CredentialTypeServiceAccountToken),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeServiceAccountToken),
 					},
 				},
 				Data: map[string][]byte{
@@ -100,7 +99,7 @@ func TestConvertSecretToGateway(t *testing.T) {
 					Namespace: testNamespace,
 					Name:      testName,
 					Labels: map[string]string{
-						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
 					},
 				},
 				Data: map[string][]byte{
@@ -141,8 +140,8 @@ func TestConvertSecretToGateway(t *testing.T) {
 					Namespace: testNamespace,
 					Name:      testName,
 					Labels: map[string]string{
-						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
-						LabelKeyClusterEndpointType:   string(ClusterEndpointTypeClusterProxy),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+						common.LabelKeyClusterEndpointType:   string(ClusterEndpointTypeClusterProxy),
 					},
 				},
 				Data: map[string][]byte{
@@ -178,7 +177,7 @@ func TestConvertSecretToGateway(t *testing.T) {
 					Namespace: testNamespace,
 					Name:      testName,
 					Labels: map[string]string{
-						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
 					},
 				},
 				Data: map[string][]byte{
@@ -223,7 +222,7 @@ func TestConvertSecretToGateway(t *testing.T) {
 						AnnotationKeyClusterGatewayStatusHealthyReason: "MyReason",
 					},
 					Labels: map[string]string{
-						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
 					},
 				},
 				Data: map[string][]byte{
@@ -293,7 +292,7 @@ func TestConvertSecretAndClusterToGateway(t *testing.T) {
 					Namespace: testNamespace,
 					Name:      testName,
 					Labels: map[string]string{
-						LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
 					},
 				},
 				Data: map[string][]byte{
@@ -344,7 +343,7 @@ func TestConvertSecretAndClusterToGateway(t *testing.T) {
 					Namespace: testNamespace,
 					Name:      testName,
 					Labels: map[string]string{
-						LabelKeyClusterCredentialType: string(CredentialTypeServiceAccountToken),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeServiceAccountToken),
 					},
 				},
 				Data: map[string][]byte{
@@ -408,7 +407,7 @@ func TestGetClusterGateway(t *testing.T) {
 			Namespace: testNamespace,
 			Name:      testName,
 			Labels: map[string]string{
-				LabelKeyClusterCredentialType: string(CredentialTypeServiceAccountToken),
+				common.LabelKeyClusterCredentialType: string(CredentialTypeServiceAccountToken),
 			},
 		},
 		Data: map[string][]byte{
@@ -418,7 +417,7 @@ func TestGetClusterGateway(t *testing.T) {
 		},
 	}
 	fakeKubeClient := fake.NewSimpleClientset(input)
-	setClient(fakeKubeClient, nil)
+	singleton.SetSecretControl(cert.NewDirectApiSecretControl(testNamespace, fakeKubeClient))
 	expected, err := convertFromSecret(input)
 	storage := &ClusterGateway{}
 	gwRaw, err := storage.Get(context.TODO(), testName, &metav1.GetOptions{})
@@ -434,7 +433,7 @@ func TestListClusterGateway(t *testing.T) {
 			Namespace: testNamespace,
 			Name:      testName,
 			Labels: map[string]string{
-				LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+				common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
 			},
 		},
 		Data: map[string][]byte{
@@ -445,7 +444,7 @@ func TestListClusterGateway(t *testing.T) {
 		},
 	}
 	fakeKubeClient := fake.NewSimpleClientset(input)
-	setClient(fakeKubeClient, nil)
+	singleton.SetSecretControl(cert.NewDirectApiSecretControl(testNamespace, fakeKubeClient))
 
 	storage := &ClusterGateway{}
 	gws, err := storage.List(context.TODO(), &internalversion.ListOptions{})
@@ -464,7 +463,7 @@ func TestListHybridClusterGateway(t *testing.T) {
 			Namespace: testNamespace,
 			Name:      testName,
 			Labels: map[string]string{
-				LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+				common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
 			},
 		},
 		Data: map[string][]byte{
@@ -479,7 +478,7 @@ func TestListHybridClusterGateway(t *testing.T) {
 			Namespace: testNamespace,
 			Name:      testNoClusterName,
 			Labels: map[string]string{
-				LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
+				common.LabelKeyClusterCredentialType: string(CredentialTypeX509Certificate),
 			},
 		},
 		Data: map[string][]byte{
@@ -511,7 +510,8 @@ func TestListHybridClusterGateway(t *testing.T) {
 	}
 	fakeKubeClient := fake.NewSimpleClientset(inputWithCluster, inputNoCluster, inputDummy)
 	fakeOcmClient := ocmclientfake.NewSimpleClientset(cluster)
-	setClient(fakeKubeClient, fakeOcmClient)
+	singleton.SetSecretControl(cert.NewDirectApiSecretControl(testNamespace, fakeKubeClient))
+	singleton.SetOCMClient(fakeOcmClient)
 
 	storage := &ClusterGateway{}
 	gws, err := storage.List(context.TODO(), &internalversion.ListOptions{})

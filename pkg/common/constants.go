@@ -1,5 +1,7 @@
 package common
 
+import "github.com/oam-dev/cluster-gateway/pkg/config"
+
 const (
 	AddonName = "cluster-gateway"
 )
@@ -19,4 +21,11 @@ const (
 
 const (
 	ClusterGatewayAPIServiceName = "v1alpha1.cluster.core.oam.dev"
+)
+
+var (
+	// LabelKeyClusterCredentialType describes the credential type in object label field
+	LabelKeyClusterCredentialType = config.MetaApiGroupName + "/cluster-credential-type"
+	// LabelKeyClusterEndpointType describes the endpoint type.
+	LabelKeyClusterEndpointType = config.MetaApiGroupName + "/cluster-endpoint-type"
 )
