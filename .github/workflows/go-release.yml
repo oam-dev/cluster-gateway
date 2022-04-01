@@ -46,8 +46,8 @@ jobs:
         uses: azure/setup-helm@v1
       - name: chart package
         run: |
-          helm package ../charts/cluster-gateway/
-          helm package ../charts/addon-manager/
+          helm package ./charts/cluster-gateway/
+          helm package ./charts/addon-manager/
       - name: push image
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
