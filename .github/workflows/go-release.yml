@@ -62,7 +62,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.RELEASE_VERSION }}
-          artifacts: "release/*.tgz"
+          artifacts: "go/src/oamdev/cluster-gateway/release/*.tgz"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: submit charts to OCM chart repo
         uses: actions/github-script@v6
