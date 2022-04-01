@@ -46,11 +46,8 @@ jobs:
         uses: azure/setup-helm@v1
       - name: chart package
         run: |
-          mkdir -p release
-          pushd release
           helm package ../charts/cluster-gateway/
           helm package ../charts/addon-manager/
-          popd
       - name: push image
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
@@ -59,13 +56,11 @@ jobs:
           docker push oamdev/cluster-gateway:$RELEASE_VERSION
           docker push oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
       - name: publish release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          fail_on_unmatched_files: true
-          files: |
-            release/*
+          tag: ${{ env.RELEASE_VERSION }}
+          artifacts: "cluster-gateway-.tgz"
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: submit charts to OCM chart repo
         uses: actions/github-script@v6
         with:
