@@ -25,7 +25,7 @@ spec:
             secretName: proxy-server-ca
       containers:
         - name: gateway
-          image: {{ .Values.image }}:{{ .Values.tag }}
+          image: {{ .Values.image }}:{{ .Values.tag | default (print "v" .Chart.Version) }}
           imagePullPolicy: IfNotPresent
           args:
             - --secure-port=9443

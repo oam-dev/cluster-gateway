@@ -135,8 +135,7 @@ jobs:
         run: |
           helm install --create-namespace -n open-cluster-management-addon \
             cluster-gateway ./charts/addon-manager \
-            --set tag=latest \
-            --set clusterGateway.image=oamdev/cluster-gateway:latest
+            --set tag=latest
           go run ./e2e/env/prepare | kubectl apply -f -
       - name: Run e2e test
         run: |

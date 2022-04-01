@@ -25,18 +25,29 @@ jobs:
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
+      - name: get release version
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "TRIMED_RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
+      - name: get major release version
+        run: |
+          echo "MAJOR_RELEASE_VERSION=${RELEASE_VERSION%.*}" >> $GITHUB_ENV
+      - name: verify chart version
+        run: |
+          cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
+          cat ./charts/addon-manager/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
       - name: install Go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: images
         run:  make image
-      - name: get release version
+      - name: setup helm
+        uses: azure/setup-helm@v1
+      - name: chart package
         run: |
-          echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-      - name: get major release version
-        run: |
-          echo "MAJOR_RELEASE_VERSION=${RELEASE_VERSION%.*}" >> $GITHUB_ENV
+          helm package ./charts/cluster-gateway/
+          helm package ./charts/addon-manager/
       - name: push image
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
@@ -48,3 +59,30 @@ jobs:
         uses: softprops/action-gh-release@v0.1.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            cluster-gateway-${{ env.TRIMED_RELEASE_VERSION }}.tgz
+            cluster-gateway-addon-manager-${{ env.TRIMED_RELEASE_VERSION }}.tgz
+      - name: submit charts to blob storage
+        uses: actions/github-script@v6
+        with:
+          debug: ${{ secrets.ACTIONS_RUNNER_DEBUG }}
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            try {
+              const result = await github.rest.actions.createWorkflowDispatch({
+                owner: 'open-cluster-management-io',
+                repo: 'helm-charts',
+                workflow_id: 'download-chart.yml',
+                ref: 'test',
+                inputs: {
+                  repo: "${{ github.repository }}",
+                  version: "${{ env.TRIMED_RELEASE_VERSION }}",
+                  "chart-name": "cluster-gateway-addon-manager",
+                },
+              })
+              console.log(result);
+            } catch(error) {
+              console.error(error);
+              core.setFailed(error);
+            }
