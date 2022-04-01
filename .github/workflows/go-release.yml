@@ -48,8 +48,8 @@ jobs:
         run: |
           mkdir -p release
           pushd release
-          helm package ./charts/cluster-gateway/
-          helm package ./charts/addon-manager/
+          helm package ../charts/cluster-gateway/
+          helm package ../charts/addon-manager/
           popd
       - name: push image
         run: |
