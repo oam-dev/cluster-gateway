@@ -74,7 +74,7 @@ jobs:
                 owner: 'open-cluster-management-io',
                 repo: 'helm-charts',
                 workflow_id: 'download-chart.yml',
-                ref: 'test',
+                ref: 'main',
                 inputs: {
                   repo: "${{ github.repository }}",
                   version: "${{ env.TRIMED_RELEASE_VERSION }}",
