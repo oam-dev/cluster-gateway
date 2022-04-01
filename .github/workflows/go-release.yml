@@ -28,10 +28,10 @@ jobs:
       - name: get release version
         run: |
           echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "TRIMED_RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
       - name: get major release version
         run: |
           echo "MAJOR_RELEASE_VERSION=${RELEASE_VERSION%.*}" >> $GITHUB_ENV
+          echo "TRIMED_RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
       - name: verify chart version
         run: |
           cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
