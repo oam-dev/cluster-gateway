@@ -18,7 +18,7 @@ spec:
       serviceAccount: cluster-gateway-addon-manager
       containers:
         - name: cluster-gateway-addon-manager
-          image: {{ .Values.image }}:{{ .Values.tag }}
+          image: {{ .Values.image }}:{{ .Values.tag | default (print "v" .Chart.Version) }}
           imagePullPolicy: IfNotPresent
           args:
             - --leader-elect=true
