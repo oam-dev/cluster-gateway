@@ -46,8 +46,11 @@ jobs:
         uses: azure/setup-helm@v1
       - name: chart package
         run: |
+          mkdir -p release
+          pushd release
           helm package ./charts/cluster-gateway/
           helm package ./charts/addon-manager/
+          popd
       - name: push image
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
@@ -60,10 +63,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          fail_on_unmatched_files: true
           files: |
-            cluster-gateway-${{ env.TRIMED_RELEASE_VERSION }}.tgz
-            cluster-gateway-addon-manager-${{ env.TRIMED_RELEASE_VERSION }}.tgz
-      - name: submit charts to blob storage
+            release/*
+      - name: submit charts to OCM chart repo
         uses: actions/github-script@v6
         with:
           debug: ${{ secrets.ACTIONS_RUNNER_DEBUG }}
