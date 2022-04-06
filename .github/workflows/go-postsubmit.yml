@@ -9,7 +9,7 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.16'
+  GO_VERSION: '1.17'
   GO_REQUIRED_MIN_VERSION: ''
   GOPATH: '/home/runner/work/oamdev/cluster-gateway/go'
 defaults:
@@ -17,9 +17,13 @@ defaults:
     working-directory: go/src/oamdev/cluster-gateway
 
 jobs:
-  verify:
+  image:
     name: latest-images
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ amd64, arm64 ]
+        os: [ linux ]
     steps:
       - name: checkout code
         uses: actions/checkout@v2
@@ -31,9 +35,65 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: image
-        run: make image
+        run: |
+          IMG_TAG=latest make image
       - name: push
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
           docker push oamdev/cluster-gateway:latest
           docker push oamdev/cluster-gateway-addon-manager:latest
+  image-multi-arch:
+    name: latest-images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [ amd64, arm64 ]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: go/src/oamdev/cluster-gateway
+      - name: install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: image
+        run: |
+          IMG_TAG=latest-${{ matrix.arch }} \
+          OS=linux \
+          ARCH=${{ matrix.arch }} \
+            make image
+      - name: push
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
+          docker push oamdev/cluster-gateway:latest-${{ matrix.arch }}
+          docker push oamdev/cluster-gateway-addon-manager:latest-${{ matrix.arch }}
+  image-manifest:
+    name: latest-images
+    runs-on: ubuntu-latest
+    needs: [ image, image-multi-arch ]
+    steps:
+      - name: create
+        run: |
+          docker manifest create oamdev/cluster-gateway:latest \
+            oamdev/cluster-gateway:latest-amd64 \
+            oamdev/cluster-gateway:latest-arm64
+          docker manifest create oamdev/cluster-gateway-addon-manager:latest \
+            oamdev/cluster-gateway-addon-manager:latest-amd64 \
+            oamdev/cluster-gateway-addon-manager:latest-arm64
+      - name: annotate
+        run: |
+          docker manifest annotate oamdev/cluster-gateway:latest \
+            oamdev/cluster-gateway:latest-amd64 --arch amd64
+          docker manifest annotate oamdev/cluster-gateway:latest \
+            oamdev/cluster-gateway:latest-arm64 --arch arm64
+          docker manifest annotate oamdev/cluster-gateway-addon-manager:latest \
+            oamdev/cluster-gateway-addon-manager:latest-amd64 --arch amd64
+          docker manifest annotate oamdev/cluster-gateway-addon-manager:latest \
+            oamdev/cluster-gateway-addon-manager:latest-arm64 --arch arm64
+      - name: push
+        run: |
+          docker manifest push oamdev/cluster-gateway:latest
+          docker manifest push oamdev/cluster-gateway-addon-manager:latest
+

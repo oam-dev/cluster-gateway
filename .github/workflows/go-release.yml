@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
 env:
   # Common versions
-  GO_VERSION: '1.16'
+  GO_VERSION: '1.17'
   GO_REQUIRED_MIN_VERSION: ''
   GOPATH: '/home/runner/work/oamdev/cluster-gateway/go'
   GITHUB_REF: ${{ github.ref }}
@@ -16,8 +16,8 @@ defaults:
     working-directory: go/src/oamdev/cluster-gateway
 
 jobs:
-  release:
-    name: release
+  env:
+    name: prepare release env
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
@@ -36,12 +36,92 @@ jobs:
         run: |
           cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
           cat ./charts/addon-manager/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
+  image:
+    name: default image build
+    runs-on: ubuntu-latest
+    needs: [ env ]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: go/src/oamdev/cluster-gateway
       - name: install Go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: images
-        run:  make image
+        run:  IMG_TAG=${$RELEASE_VERSION} make image
+      - name: push image
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
+          docker push oamdev/cluster-gateway:$RELEASE_VERSION
+          docker push oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
+  image-multi-arch:
+    name: multi arch image build
+    runs-on: ubuntu-latest
+    needs: [ env ]
+    strategy:
+      matrix:
+        arch: [ amd64, arm64 ]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: go/src/oamdev/cluster-gateway
+      - name: install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: images multi arch
+        run: |
+          IMG_TAG=${RELEASE_VERSION}-${{ matrix.arch }} \
+          OS=linux \
+          ARCH=${{ matrix.arch }} \
+            make image
+      - name: push image multi arch
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
+          docker push oamdev/cluster-gateway:${RELEASE_VERSION}-${{ matrix.arch }}
+          docker push oamdev/cluster-gateway-addon-manager:${RELEASE_VERSION}-${{ matrix.arch }}
+  image-manifest:
+    name: release
+    runs-on: ubuntu-latest
+    needs: [ image, image-multi-arch ]
+    steps:
+      - name: create
+        run: |
+          docker manifest create oamdev/cluster-gateway:$RELEASE_VERSION \
+            oamdev/cluster-gateway:$RELEASE_VERSION-amd64 \
+            oamdev/cluster-gateway:$RELEASE_VERSION-arm64
+          docker manifest create oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION \
+            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-amd64 \
+            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-arm64
+      - name: annotate
+        run: |
+          docker manifest annotate oamdev/cluster-gateway:$RELEASE_VERSION \
+            oamdev/cluster-gateway:$RELEASE_VERSION-amd64 --arch amd64
+          docker manifest annotate oamdev/cluster-gateway:$RELEASE_VERSION \
+            oamdev/cluster-gateway:$RELEASE_VERSION-arm64 --arch arm64
+          docker manifest annotate oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION \
+            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-amd64 --arch amd64
+          docker manifest annotate oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION \
+            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-arm64 --arch arm64
+      - name: push
+        run: |
+          docker manifest push oamdev/cluster-gateway:$RELEASE_VERSION
+          docker manifest push oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    needs: [ image-manifest ]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: go/src/oamdev/cluster-gateway
       - name: setup helm
         uses: azure/setup-helm@v1
       - name: chart package
@@ -51,13 +131,6 @@ jobs:
           helm package ../charts/cluster-gateway/
           helm package ../charts/addon-manager/
           popd
-      - name: push image
-        run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
-          docker tag oamdev/cluster-gateway:latest oamdev/cluster-gateway:$RELEASE_VERSION
-          docker tag oamdev/cluster-gateway-addon-manager:latest oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
-          docker push oamdev/cluster-gateway:$RELEASE_VERSION
-          docker push oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
       - name: publish release
         uses: ncipollo/release-action@v1
         with:

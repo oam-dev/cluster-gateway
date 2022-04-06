@@ -1,7 +1,10 @@
+ARG OS=linux
+ARG ARCH=amd64
 # Build the manager binary
 FROM golang:1.17 as builder
 
 WORKDIR /workspace
+
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -16,8 +19,8 @@ COPY hack/ hack/
 
 # Build
 RUN CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64 \
+    GOOS=${OS} \
+    GOARCH=${ARCH} \
     GO111MODULE=on \
     go build \
         -a -o addon-manager \
@@ -25,7 +28,8 @@ RUN CGO_ENABLED=0 \
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM alpine:3.13
+ARG ARCH
+FROM multiarch/alpine:${ARCH}-v3.13
 
 WORKDIR /
 COPY --from=builder /workspace/addon-manager /
