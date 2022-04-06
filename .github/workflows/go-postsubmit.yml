@@ -18,12 +18,8 @@ defaults:
 
 jobs:
   image:
-    name: latest-images
+    name: default-latest-images
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [ amd64, arm64 ]
-        os: [ linux ]
     steps:
       - name: checkout code
         uses: actions/checkout@v2
@@ -43,7 +39,7 @@ jobs:
           docker push oamdev/cluster-gateway:latest
           docker push oamdev/cluster-gateway-addon-manager:latest
   image-multi-arch:
-    name: latest-images
+    name: matrix-latest-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -70,10 +66,15 @@ jobs:
           docker push oamdev/cluster-gateway:latest-${{ matrix.arch }}
           docker push oamdev/cluster-gateway-addon-manager:latest-${{ matrix.arch }}
   image-manifest:
-    name: latest-images
+    name: image manifest
     runs-on: ubuntu-latest
     needs: [ image, image-multi-arch ]
     steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          path: go/src/oamdev/cluster-gateway
       - name: create
         run: |
           docker manifest create oamdev/cluster-gateway:latest \
