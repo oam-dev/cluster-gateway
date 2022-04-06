@@ -53,7 +53,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pkg-
       - name: Run Make test
         run: make test
-
       - name: Run Make
         run: make
 
@@ -96,6 +95,7 @@ jobs:
         run: |
           kubectl get clustergateway
           make test-e2e
+
   e2e-ocm-addon-cluster-gateway:
     runs-on: ubuntu-20.04
     needs: detect-noop

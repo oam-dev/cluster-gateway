@@ -5,6 +5,9 @@ IMG_TAG ?= latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
+OS?=linux
+ARCH?=amd64
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -116,11 +119,15 @@ manifests: controller-gen
 
 gateway:
 	docker build -t oamdev/cluster-gateway:${IMG_TAG} \
+		--build-arg OS=${OS} \
+		--build-arg ARCH=${ARCH} \
 		-f cmd/apiserver/Dockerfile \
 		.
 
 ocm-addon-manager:
 	docker build -t oamdev/cluster-gateway-addon-manager:${IMG_TAG} \
+		--build-arg OS=${OS} \
+		--build-arg ARCH=${ARCH} \
 		-f cmd/addon-manager/Dockerfile \
 		.
 

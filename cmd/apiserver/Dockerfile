@@ -1,3 +1,5 @@
+ARG OS=linux
+ARG ARCH=amd64
 # Build the manager binary
 FROM golang:1.17 as builder
 
@@ -18,8 +20,8 @@ ARG API_GROUP_NAME=cluster.core.oam.dev
 
 # Build
 RUN CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64 \
+    GOOS=${OS} \
+    GOARCH=${ARCH} \
     GO111MODULE=on \
     go build \
         -ldflags="-X 'github.com/oam-dev/cluster-gateway/pkg/config.MetaApiGroupName=${API_GROUP_NAME}'" \
@@ -27,8 +29,8 @@ RUN CGO_ENABLED=0 \
         cmd/apiserver/main.go
 
 RUN CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64 \
+    GOOS=${OS} \
+    GOARCH=${ARCH} \
     GO111MODULE=on \
     go build \
         -a -o patch \
@@ -36,7 +38,8 @@ RUN CGO_ENABLED=0 \
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM alpine:3.13
+ARG ARCH
+FROM multiarch/alpine:${ARCH}-v3.13
 
 WORKDIR /
 COPY --from=builder /workspace/apiserver /
