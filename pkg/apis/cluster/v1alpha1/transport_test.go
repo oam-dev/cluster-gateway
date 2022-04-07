@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,6 +53,7 @@ func TestClusterRestConfigConversion(t *testing.T) {
 			expectedCfg: &rest.Config{
 				Host:        "https://foo.bar:33",
 				BearerToken: testToken,
+				Timeout:     40 * time.Second,
 				TLSClientConfig: rest.TLSClientConfig{
 					ServerName: "foo.bar",
 					CAData:     testCAData,
@@ -81,7 +83,8 @@ func TestClusterRestConfigConversion(t *testing.T) {
 				},
 			},
 			expectedCfg: &rest.Config{
-				Host: "https://foo.bar:33",
+				Host:    "https://foo.bar:33",
+				Timeout: 40 * time.Second,
 				TLSClientConfig: rest.TLSClientConfig{
 					ServerName: "foo.bar",
 					CAData:     testCAData,
@@ -111,6 +114,7 @@ func TestClusterRestConfigConversion(t *testing.T) {
 			},
 			expectedCfg: &rest.Config{
 				Host:        "https://foo.bar",
+				Timeout:     40 * time.Second,
 				BearerToken: testToken,
 				TLSClientConfig: rest.TLSClientConfig{
 					ServerName: "foo.bar",
@@ -139,6 +143,7 @@ func TestClusterRestConfigConversion(t *testing.T) {
 			},
 			expectedCfg: &rest.Config{
 				Host:        "https://foo.bar:33",
+				Timeout:     40 * time.Second,
 				BearerToken: testToken,
 				TLSClientConfig: rest.TLSClientConfig{
 					ServerName: "foo.bar",
@@ -166,6 +171,7 @@ func TestClusterRestConfigConversion(t *testing.T) {
 			},
 			expectedCfg: &rest.Config{
 				Host:        "my-cluster",
+				Timeout:     40 * time.Second,
 				BearerToken: testToken,
 				Dial:        testDialFunc,
 				TLSClientConfig: rest.TLSClientConfig{

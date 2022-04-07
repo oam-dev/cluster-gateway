@@ -43,7 +43,9 @@ var DialerGetter = func(ctx context.Context) (k8snet.DialFunc, error) {
 }
 
 func NewConfigFromCluster(ctx context.Context, c *ClusterGateway) (*restclient.Config, error) {
-	cfg := &restclient.Config{}
+	cfg := &restclient.Config{
+		Timeout: time.Second * 40,
+	}
 	// setting up endpoint
 	switch c.Spec.Access.Endpoint.Type {
 	case ClusterEndpointTypeConst:
