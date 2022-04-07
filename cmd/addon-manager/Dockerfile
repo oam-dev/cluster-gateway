@@ -2,6 +2,8 @@ ARG OS=linux
 ARG ARCH=amd64
 # Build the manager binary
 FROM golang:1.17 as builder
+ARG OS
+ARG ARCH
 
 WORKDIR /workspace
 
