@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	konnectivity "github.com/oam-dev/cluster-gateway/forked/konnectivity-client/pkg/client"
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -14,7 +15,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 	k8snet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
-	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
 )
 
