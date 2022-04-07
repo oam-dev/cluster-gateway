@@ -15,6 +15,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -548,6 +549,12 @@ func newClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, co
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Args:            args,
 							VolumeMounts:    volumeMounts,
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
+									corev1.ResourceMemory: *resource.NewQuantity(600*1024*1024, resource.BinarySI),
+								},
+							},
 						},
 					},
 					ServiceAccountName: common.AddonName,
