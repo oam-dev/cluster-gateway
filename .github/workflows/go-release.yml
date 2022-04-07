@@ -36,27 +36,6 @@ jobs:
         run: |
           cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
           cat ./charts/addon-manager/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
-  image:
-    name: default image build
-    runs-on: ubuntu-latest
-    needs: [ env ]
-    steps:
-      - name: checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
-          path: go/src/oamdev/cluster-gateway
-      - name: install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: images
-        run:  IMG_TAG=${$RELEASE_VERSION} make image
-      - name: push image
-        run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
-          docker push oamdev/cluster-gateway:$RELEASE_VERSION
-          docker push oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
   image-multi-arch:
     name: multi arch image build
     runs-on: ubuntu-latest
