@@ -17,6 +17,7 @@ RUN go mod download
 # Copy the go source
 COPY cmd/ cmd/
 COPY pkg/ pkg/
+COPY forked/ forked/
 COPY hack/ hack/
 
 # Build
