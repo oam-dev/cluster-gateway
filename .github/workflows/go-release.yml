@@ -36,6 +36,11 @@ jobs:
         run: |
           cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
           cat ./charts/addon-manager/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
+      - name: export env
+        id: export
+        run: |
+          echo "::set-output TRIMED_RELEASE_VERSION=${{ env.TRIMED_RELEASE_VERSION }}"
+          echo "::set-output RELEASE_VERSION=${{ env.RELEASE_VERSION }}"
   image-multi-arch:
     name: multi arch image build
     runs-on: ubuntu-latest
@@ -55,15 +60,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: images multi arch
         run: |
-          IMG_TAG=${RELEASE_VERSION}-${{ matrix.arch }} \
+          IMG_TAG=${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-${{ matrix.arch }} \
           OS=linux \
           ARCH=${{ matrix.arch }} \
             make image
       - name: push image multi arch
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
-          docker push oamdev/cluster-gateway:${RELEASE_VERSION}-${{ matrix.arch }}
-          docker push oamdev/cluster-gateway-addon-manager:${RELEASE_VERSION}-${{ matrix.arch }}
+          docker push oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
+          docker push oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
   image-manifest:
     name: release
     runs-on: ubuntu-latest
@@ -77,26 +82,26 @@ jobs:
       - name: create
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
-          docker manifest create oamdev/cluster-gateway:$RELEASE_VERSION \
-            oamdev/cluster-gateway:$RELEASE_VERSION-amd64 \
-            oamdev/cluster-gateway:$RELEASE_VERSION-arm64
-          docker manifest create oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION \
-            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-amd64 \
-            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-arm64
+          docker manifest create oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }} \
+            oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-amd64 \
+            oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-arm64
+          docker manifest create oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }} \
+            oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-amd64 \
+            oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-arm64
       - name: annotate
         run: |
-          docker manifest annotate oamdev/cluster-gateway:$RELEASE_VERSION \
-            oamdev/cluster-gateway:$RELEASE_VERSION-amd64 --arch amd64
-          docker manifest annotate oamdev/cluster-gateway:$RELEASE_VERSION \
-            oamdev/cluster-gateway:$RELEASE_VERSION-arm64 --arch arm64
-          docker manifest annotate oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION \
-            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-amd64 --arch amd64
-          docker manifest annotate oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION \
-            oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION-arm64 --arch arm64
+          docker manifest annotate oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }} \
+            oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-amd64 --arch amd64
+          docker manifest annotate oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }} \
+            oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-arm64 --arch arm64
+          docker manifest annotate oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }} \
+            oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-amd64 --arch amd64
+          docker manifest annotate oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }} \
+            oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}-arm64 --arch arm64
       - name: push
         run: |
-          docker manifest push oamdev/cluster-gateway:$RELEASE_VERSION
-          docker manifest push oamdev/cluster-gateway-addon-manager:$RELEASE_VERSION
+          docker manifest push oamdev/cluster-gateway:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}
+          docker manifest push oamdev/cluster-gateway-addon-manager:${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}
   release:
     name: release
     runs-on: ubuntu-latest
@@ -119,7 +124,7 @@ jobs:
       - name: publish release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ env.RELEASE_VERSION }}
+          tag: ${{ jobs.env.steps.export.outputs.RELEASE_VERSION }}
           artifacts: "go/src/oamdev/cluster-gateway/release/*.tgz"
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: submit charts to OCM chart repo
@@ -136,7 +141,7 @@ jobs:
                 ref: 'main',
                 inputs: {
                   repo: "${{ github.repository }}",
-                  version: "${{ env.TRIMED_RELEASE_VERSION }}",
+                  version: "${{ jobs.env.steps.export.outputs.TRIMED_RELEASE_VERSION }}",
                   "chart-name": "cluster-gateway-addon-manager",
                 },
               })
