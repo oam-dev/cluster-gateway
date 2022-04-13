@@ -130,6 +130,8 @@ github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRF
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
 github.com/alexflint/go-filemutex v0.0.0-20171022225611-72bdc8eae2ae/go.mod h1:CgnQgUtFrFz9mxFNtED3jI5tLDjKlOM+oUF/sTk6ps0=
 github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cvfHR56wJVlKE=
+github.com/andrewsykim/apiserver-network-proxy/konnectivity-client v0.0.28-0.20220303182404-f7eb111572e3 h1:/iocXWDLRfQ6ub9lcV0UvF0e+BdMyKVLEnB+IW5Kj00=
+github.com/andrewsykim/apiserver-network-proxy/konnectivity-client v0.0.28-0.20220303182404-f7eb111572e3/go.mod h1:fEO7lRTdivWO2qYVCVG7dEADOMo/MLDCVr8So2g88Uw=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.0/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/cascadia v1.0.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
@@ -2142,8 +2144,6 @@ rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy v0.0.24 h1:yaswrAqidc2XdLK2GRacVEBb55g4dg91f/B7b0SYliY=
 sigs.k8s.io/apiserver-network-proxy v0.0.24/go.mod h1:z/U9KltvRVSMttVl3cdQo8cPuXEjr+Qn3A5sUJR55XI=
-sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24 h1:bCO6TN9VG1bK3nCG5ghQ5httx1HpsG5MD8XtRDySHDM=
-sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24/go.mod h1:LEScyzhFmoF5pso/YSeBstl57mOzx9xlU9n85RGrDQg=
 sigs.k8s.io/apiserver-runtime v1.1.0 h1:0U0EgW9b5wuU0K1NS1u8n2OjmXyC72P6PnKxoZOsr3c=
 sigs.k8s.io/apiserver-runtime v1.1.0/go.mod h1:cmahVEn9R791yUnSiFMFdwTqi2dOe5WQRNwcY6jb7l0=
 sigs.k8s.io/cli-utils v0.16.0/go.mod h1:9Jqm9K2W6ShhCxsEuaz6HSRKKOXigPUx3ZfypGgxBLY=

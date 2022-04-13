@@ -118,4 +118,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24
+replace sigs.k8s.io/apiserver-network-proxy/konnectivity-client => github.com/andrewsykim/apiserver-network-proxy/konnectivity-client v0.0.28-0.20220303182404-f7eb111572e3
