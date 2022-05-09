@@ -28,14 +28,11 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	apiproxy "k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/apis/audit"
-	"k8s.io/apiserver/pkg/audit/event"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -117,33 +114,23 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 		user, _ := request.UserFrom(ctx)
 		var attr authorizer.Attributes
 		if proxyReqInfo.IsResourceRequest {
-			attr, _ = event.NewAttributes(&audit.Event{
-				User: v1.UserInfo{
-					Username: user.GetName(),
-					UID:      user.GetUID(),
-					Groups:   user.GetGroups(),
-				},
-				ObjectRef: &audit.ObjectReference{
-					APIGroup:    proxyReqInfo.APIGroup,
-					APIVersion:  proxyReqInfo.APIVersion,
-					Resource:    proxyReqInfo.Resource,
-					Subresource: proxyReqInfo.Subresource,
-					Namespace:   proxyReqInfo.Namespace,
-					Name:        proxyReqInfo.Name,
-				},
-				Verb: proxyReqInfo.Verb,
-			})
+			attr = authorizer.AttributesRecord{
+				User:        user,
+				APIGroup:    proxyReqInfo.APIGroup,
+				APIVersion:  proxyReqInfo.APIVersion,
+				Resource:    proxyReqInfo.Resource,
+				Subresource: proxyReqInfo.Subresource,
+				Namespace:   proxyReqInfo.Namespace,
+				Name:        proxyReqInfo.Name,
+				Verb:        proxyReqInfo.Verb,
+			}
 		} else {
-			attr, _ = event.NewAttributes(&audit.Event{
-				User: v1.UserInfo{
-					Username: user.GetName(),
-					UID:      user.GetUID(),
-					Groups:   user.GetGroups(),
-				},
-				ObjectRef:  nil,
-				RequestURI: proxyReqInfo.Path,
-				Verb:       proxyReqInfo.Verb,
-			})
+			path, _ := url.ParseRequestURI(proxyReqInfo.Path)
+			attr = authorizer.AttributesRecord{
+				User: user,
+				Path: path.Path,
+				Verb: proxyReqInfo.Verb,
+			}
 		}
 
 		decision, reason, err := loopback.GetAuthorizer().Authorize(ctx, attr)
