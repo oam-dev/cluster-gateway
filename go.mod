@@ -11,7 +11,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
-	google.golang.org/grpc v1.40.0
+	google.golang.org/grpc v1.42.0
 	k8s.io/api v0.23.1
 	k8s.io/apimachinery v0.23.1
 	k8s.io/apiserver v0.23.1
@@ -24,7 +24,7 @@ require (
 	open-cluster-management.io/addon-framework v0.2.1-0.20220317063747-100a0230a883
 	open-cluster-management.io/api v0.5.1-0.20220112073018-2d280a97a052
 	open-cluster-management.io/managed-serviceaccount v0.1.0
-	sigs.k8s.io/apiserver-network-proxy v0.0.24
+	sigs.k8s.io/apiserver-network-proxy v0.0.30
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.25
 	sigs.k8s.io/apiserver-runtime v1.1.0
 	sigs.k8s.io/controller-runtime v0.11.0
@@ -118,4 +118,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.24
+replace sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.31-0.20220502234555-5308cea56b78
