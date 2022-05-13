@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"strconv"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -11,6 +13,7 @@ var (
 		{Name: "Provider", Type: "string", Description: "the cluster provider type"},
 		{Name: "Credential-Type", Type: "string", Description: "the credential type"},
 		{Name: "Endpoint-Type", Type: "string", Description: "the endpoint type"},
+		{Name: "Healthy", Type: "string", Description: "the healthiness of the gateway"},
 	}
 )
 
@@ -42,6 +45,6 @@ func printClusterGatewayRow(c *ClusterGateway) metav1.TableRow {
 	row := metav1.TableRow{
 		Object: runtime.RawExtension{Object: c},
 	}
-	row.Cells = append(row.Cells, name, provideType, credType, epType)
+	row.Cells = append(row.Cells, name, provideType, credType, epType, strconv.FormatBool(c.Status.Healthy))
 	return row
 }
