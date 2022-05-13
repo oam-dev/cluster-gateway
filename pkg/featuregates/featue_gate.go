@@ -35,5 +35,5 @@ const (
 
 var DefaultKubeFedFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	HealthinessCheck: {Default: false, PreRelease: featuregate.Alpha},
-	SecretCache:      {Default: false, PreRelease: featuregate.Alpha},
+	SecretCache:      {Default: true, PreRelease: featuregate.Beta},
 }
