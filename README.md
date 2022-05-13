@@ -56,9 +56,9 @@ in a local experiment:
 
 |  Bandwidth  |  Direct          |  ClusterGateway  | ClusterGateway(over Konnectivity) |
 |-------------|------------------|------------------|-----------------------------------|
-|  Fastest    |  0.083s          |  0.560s          | 0.556s                            |
-|  Slowest    |  1.078s          |  1.887s          | 2.579s                            |
-|  Average    |  0.580s ± 0.175s |  0.849s ± 0.361s | 1.408s ± 0.542s                   |
+|  Fastest    |  0.059s          |  0.190s          | 0.428s                            |
+|  Slowest    |  0.910s          |  0.856s          | 1.356s                            |
+|  Average    |  0.583s ± 0.104s |  0.581s ± 0.087s | 0.608s ± 0.135s                   |
 
 ### Open-Cluster-Management Integration
 
