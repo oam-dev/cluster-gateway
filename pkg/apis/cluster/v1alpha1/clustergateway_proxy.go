@@ -24,7 +24,10 @@ import (
 	"strings"
 	"time"
 
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+
 	"github.com/oam-dev/cluster-gateway/pkg/config"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 
 	"github.com/pkg/errors"
@@ -216,7 +219,7 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		responsewriters.InternalError(writer, request, errors.Wrapf(err, "failed creating cluster proxy client config %s", cluster.Name))
 		return
 	}
-	if p.impersonate {
+	if p.impersonate || utilfeature.DefaultFeatureGate.Enabled(featuregates.ClientIdentityPenetration) {
 		cfg.Impersonate = getImpersonationConfig(request)
 	}
 	rt, err := restclient.TransportFor(cfg)
