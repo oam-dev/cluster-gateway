@@ -52,7 +52,7 @@ func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOpt
 			ManagedClusters().
 			Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return convertFromSecret(clusterSecret)
 		}
 		return convertFromManagedClusterAndSecret(managedCluster, clusterSecret)
 	}
