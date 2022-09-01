@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-
 	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,4 +81,26 @@ var _ = Describe("Basic RoundTrip Test",
 					"shouldn't take too long.")
 		}, 100)
 
+
+		Measure("get namespace kube-system from managed cluster", func(b Benchmarker) {
+			runtime := b.Time("runtime", func() {
+				_, err = multiClusterClient.CoreV1().Namespaces().Get(
+					multicluster.WithMultiClusterContext(context.TODO(), f.TestClusterName()), "kube-system", metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Ω(runtime.Seconds()).Should(BeNumerically("<", 15))
+
+		}, 1000)
+
+		Measure("list namespace from managed cluster", func(b Benchmarker) {
+			runtime := b.Time("runtime", func() {
+				_, err = multiClusterClient.CoreV1().Namespaces().List(
+					multicluster.WithMultiClusterContext(context.TODO(), f.TestClusterName()), metav1.ListOptions{Limit: 100})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Ω(runtime.Seconds()).Should(BeNumerically("<", 15))
+
+		}, 1000)
 	})
