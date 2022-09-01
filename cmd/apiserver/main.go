@@ -53,6 +53,7 @@ func main() {
 	if err != nil {
 		klog.Fatal(err)
 	}
+	config.AddLogFlags(cmd.Flags())
 	config.AddSecretFlags(cmd.Flags())
 	config.AddClusterProxyFlags(cmd.Flags())
 	config.AddProxyAuthorizationFlags(cmd.Flags())
