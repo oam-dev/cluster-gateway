@@ -19,10 +19,15 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
 	"github.com/oam-dev/cluster-gateway/pkg/util/singleton"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/server"
 	"k8s.io/klog/v2"
+	"net/http"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 	// +kubebuilder:scaffold:resource-imports
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	genericfilters "k8s.io/apiserver/pkg/server/filters"
 
 	_ "github.com/oam-dev/cluster-gateway/pkg/featuregates"
 )
@@ -39,6 +44,15 @@ func main() {
 		ExposeLoopbackMasterClientConfig().
 		ExposeLoopbackAuthorizer().
 		WithoutEtcd().
+		WithConfigFns(func(config *server.RecommendedConfig) *server.RecommendedConfig {
+			config.LongRunningFunc = func(r *http.Request, requestInfo *request.RequestInfo) bool {
+				if requestInfo.Resource == "clustergateways" && requestInfo.Subresource == "proxy" {
+					return true
+				}
+				return genericfilters.BasicLongRunningRequestCheck(sets.NewString("watch"), sets.NewString())(r, requestInfo)
+			}
+			return config
+		}).
 		WithOptionsFns(func(options *builder.ServerOptions) *builder.ServerOptions {
 			if err := config.ValidateSecret(); err != nil {
 				klog.Fatal(err)
