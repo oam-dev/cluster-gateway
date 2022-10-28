@@ -86,8 +86,8 @@ func TestProxyHandler(t *testing.T) {
 			text := "ok"
 			var receivingReq *http.Request
 			endpointSvr := httptest.NewTLSServer(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				resp.Write([]byte(text))
 				resp.WriteHeader(200)
+				resp.Write([]byte(text))
 				receivingReq = req
 			}))
 			defer endpointSvr.Close()

@@ -197,8 +197,9 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	// WithContext creates a shallow clone of the request with the same context.
-	newReq := request.WithContext(request.Context())
+	// Go 1.19 removes the URL clone in WithContext method and therefore change
+	// to deep copy here
+	newReq := request.Clone(request.Context())
 	newReq.Header = utilnet.CloneHeader(request.Header)
 	newReq.URL.Path = p.path
 
