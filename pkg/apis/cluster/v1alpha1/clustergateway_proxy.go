@@ -84,6 +84,8 @@ func (c *ClusterGatewayProxy) New() runtime.Object {
 	return &ClusterGatewayProxyOptions{}
 }
 
+func (in *ClusterGatewayProxy) Destroy() {}
+
 func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options runtime.Object, r registryrest.Responder) (http.Handler, error) {
 	proxyOpts, ok := options.(*ClusterGatewayProxyOptions)
 	if !ok {

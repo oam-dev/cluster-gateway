@@ -141,6 +141,8 @@ func (f *fakeParentStorage) New() runtime.Object {
 	return f.obj
 }
 
+func (f *fakeParentStorage) Destroy() {}
+
 func (f *fakeParentStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	return f.obj, f.err
 }
