@@ -29,6 +29,8 @@ func (in *ClusterGatewayHealth) SubResourceName() string {
 	return "health"
 }
 
+func (in *ClusterGatewayHealth) Destroy() {}
+
 func (in *ClusterGatewayHealth) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	parentStorage, ok := contextutil.GetParentStorageGetter(ctx)
 	if !ok {

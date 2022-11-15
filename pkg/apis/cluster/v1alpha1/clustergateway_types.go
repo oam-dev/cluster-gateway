@@ -17,13 +17,14 @@ package v1alpha1
 import (
 	"context"
 
-	"github.com/oam-dev/cluster-gateway/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource/resourcestrategy"
+
+	"github.com/oam-dev/cluster-gateway/pkg/config"
 )
 
 // +genclient
@@ -134,6 +135,8 @@ func (in *ClusterGateway) NamespaceScoped() bool {
 func (in *ClusterGateway) New() runtime.Object {
 	return &ClusterGateway{}
 }
+
+func (in *ClusterGateway) Destroy() {}
 
 func (in *ClusterGateway) NewList() runtime.Object {
 	return &ClusterGatewayList{}
