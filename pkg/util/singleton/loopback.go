@@ -6,6 +6,7 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
+	clusterutil "github.com/oam-dev/cluster-gateway/pkg/util/cluster"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/server"
@@ -16,6 +17,8 @@ import (
 	clientgorest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1Lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 )
 
@@ -26,6 +29,10 @@ var secretInformer cache.SharedIndexInformer
 var secretLister corev1lister.SecretLister
 
 var secretControl cert.SecretControl
+
+var clusterInformer cache.SharedIndexInformer
+var clusterLister clusterv1Lister.ManagedClusterLister
+var clusterControl clusterutil.OCMClusterControl
 
 func GetSecretControl() cert.SecretControl {
 	return secretControl
@@ -60,6 +67,17 @@ func InitLoopbackClient(ctx server.PostStartHookContext) error {
 	if secretControl == nil {
 		secretControl = cert.NewDirectApiSecretControl(config.SecretNamespace, kubeClient)
 	}
+
+	if utilfeature.DefaultMutableFeatureGate.Enabled(featuregates.OCMClusterCache) {
+		if err := setOCMClusterInformer(ocmClient, ctx.StopCh); err != nil {
+			return err
+		}
+		clusterControl = clusterutil.NewCacheOCMClusterControl(clusterLister)
+	}
+	if clusterControl == nil {
+		clusterControl = clusterutil.NewDirectOCMClusterControl(ocmClient)
+	}
+
 	return nil
 }
 
@@ -87,4 +105,18 @@ func SetOCMClient(c ocmclient.Interface) {
 // SetKubeClient is for test only
 func SetKubeClient(k kubernetes.Interface) {
 	kubeClient = k
+}
+
+func setOCMClusterInformer(c ocmclient.Interface, stopCh <-chan struct{}) error {
+	ocmClusterInformers := clusterinformers.NewSharedInformerFactory(c, 0)
+	clusterInformer = ocmClusterInformers.Cluster().V1().ManagedClusters().Informer()
+	clusterLister = ocmClusterInformers.Cluster().V1().ManagedClusters().Lister()
+	go clusterInformer.Run(stopCh)
+	return wait.PollImmediateUntil(time.Second, func() (done bool, err error) {
+		return clusterInformer.HasSynced(), nil
+	}, stopCh)
+}
+
+func GetClusterControl() clusterutil.OCMClusterControl {
+	return clusterControl
 }

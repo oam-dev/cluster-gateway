@@ -47,10 +47,7 @@ func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOpt
 	}
 
 	if options.OCMIntegration {
-		managedCluster, err := singleton.GetOCMClient().
-			ClusterV1().
-			ManagedClusters().
-			Get(ctx, name, metav1.GetOptions{})
+		managedCluster, err := singleton.GetClusterControl().Get(ctx, name)
 		if err != nil {
 			return convertFromSecret(clusterSecret)
 		}
@@ -74,18 +71,15 @@ func (in *ClusterGateway) List(ctx context.Context, opt *internalversion.ListOpt
 	}
 
 	if options.OCMIntegration {
-		clusters, err := singleton.GetOCMClient().
-			ClusterV1().
-			ManagedClusters().
-			List(context.TODO(), metav1.ListOptions{})
+		clusters, err := singleton.GetClusterControl().List(ctx)
 		if err != nil {
 			return nil, err
 		}
 		clustersByName := make(map[string]*clusterv1.ManagedCluster)
-		for _, cluster := range clusters.Items {
-			cluster := cluster
-			clustersByName[cluster.Name] = &cluster
+		for _, cluster := range clusters {
+			clustersByName[cluster.Name] = cluster
 		}
+
 		for _, secret := range clusterSecrets {
 			if cluster, ok := clustersByName[secret.Name]; ok {
 				gw, err := convertFromManagedClusterAndSecret(cluster, secret)
