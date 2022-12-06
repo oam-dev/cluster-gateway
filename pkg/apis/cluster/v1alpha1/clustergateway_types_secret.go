@@ -29,9 +29,10 @@ var _ rest.Getter = &ClusterGateway{}
 var _ rest.Lister = &ClusterGateway{}
 
 // Conversion between corev1.Secret and ClusterGateway:
-//   1. Storing credentials under the secret's data including X.509 key-pair or token.
-//   2. Extending the spec of ClusterGateway by the secret's label.
-//   3. Extending the status of ClusterGateway by the secrets' annotation.
+//  1. Storing credentials under the secret's data including X.509 key-pair or token.
+//  2. Extending the spec of ClusterGateway by the secret's label.
+//  3. Extending the status of ClusterGateway by the secrets' annotation.
+//
 // NOTE: Because the secret resource is designed to have no "metadata.generation" field,
 // the ClusterGateway resource also misses the generation tracking.
 const (
@@ -40,6 +41,10 @@ const (
 )
 
 func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOptions) (runtime.Object, error) {
+	if singleton.GetSecretControl() == nil {
+		return nil, fmt.Errorf("loopback secret client are not inited")
+	}
+
 	clusterSecret, err := singleton.GetSecretControl().Get(ctx, name)
 	if err != nil {
 		klog.Warningf("Failed getting secret %q/%q: %v", config.SecretNamespace, name, err)
@@ -47,6 +52,9 @@ func (in *ClusterGateway) Get(ctx context.Context, name string, _ *metav1.GetOpt
 	}
 
 	if options.OCMIntegration {
+		if singleton.GetClusterControl() == nil {
+			return nil, fmt.Errorf("loopback cluster client are not inited")
+		}
 		managedCluster, err := singleton.GetClusterControl().Get(ctx, name)
 		if err != nil {
 			return convertFromSecret(clusterSecret)
