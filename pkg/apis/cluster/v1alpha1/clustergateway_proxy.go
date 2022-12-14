@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	gopath "path"
 	"strings"
 	"time"
 
@@ -213,7 +214,7 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	host, _, _ := net.SplitHostPort(urlAddr.Host)
 	path := strings.TrimPrefix(request.URL.Path, apiPrefix+p.parentName+apiSuffix)
 	newReq.Host = host
-	newReq.URL.Path = path
+	newReq.URL.Path = gopath.Join(urlAddr.Path, path)
 	newReq.URL.RawQuery = request.URL.RawQuery
 	newReq.RequestURI = newReq.URL.RequestURI()
 
@@ -233,7 +234,7 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	proxy := apiproxy.NewUpgradeAwareHandler(
 		&url.URL{
 			Scheme:   urlAddr.Scheme,
-			Path:     path,
+			Path:     newReq.URL.Path,
 			Host:     urlAddr.Host,
 			RawQuery: request.URL.RawQuery,
 		},
