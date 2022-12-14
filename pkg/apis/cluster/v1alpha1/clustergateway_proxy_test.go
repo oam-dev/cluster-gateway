@@ -2,9 +2,10 @@ package v1alpha1
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	gopath "path"
 	"strings"
 	"testing"
 
@@ -31,6 +32,7 @@ func TestProxyHandler(t *testing.T) {
 		objName         string
 		inputOption     *ClusterGatewayProxyOptions
 		reqInfo         request.RequestInfo
+		endpointPath    string
 		expectedFailure bool
 		errorAssertFunc func(t *testing.T, err error)
 	}{
@@ -76,6 +78,32 @@ func TestProxyHandler(t *testing.T) {
 				assert.True(t, strings.HasPrefix(err.Error(), "no such cluster"))
 			},
 		},
+		{
+			name: "normal proxy with sub-path in endpoint should work",
+			parent: &fakeParentStorage{
+				obj: &ClusterGateway{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "myName",
+					},
+					Spec: ClusterGatewaySpec{
+						Access: ClusterAccess{
+							Credential: &ClusterAccessCredential{
+								Type:                CredentialTypeServiceAccountToken,
+								ServiceAccountToken: "myToken",
+							},
+						},
+					},
+				},
+			},
+			endpointPath: "/extra",
+			objName:      "myName",
+			inputOption: &ClusterGatewayProxyOptions{
+				Path: "/abc",
+			},
+			reqInfo: request.RequestInfo{
+				Verb: "get",
+			},
+		},
 	}
 
 	for _, c := range cases {
@@ -95,7 +123,7 @@ func TestProxyHandler(t *testing.T) {
 				c.parent.obj.Spec.Access.Endpoint = &ClusterEndpoint{
 					Type: ClusterEndpointTypeConst,
 					Const: &ClusterEndpointConst{
-						Address:  endpointSvr.URL,
+						Address:  endpointSvr.URL + c.endpointPath,
 						Insecure: pointer.Bool(true),
 					},
 				}
@@ -120,11 +148,11 @@ func TestProxyHandler(t *testing.T) {
 			targetPath := apiPrefix + c.objName + apiSuffix + path
 			resp, err := svr.Client().Get(svr.URL + targetPath)
 			assert.NoError(t, err)
-			data, err := ioutil.ReadAll(resp.Body)
+			data, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			assert.Equal(t, text, string(data))
 			assert.Equal(t, 200, resp.StatusCode)
-			assert.Equal(t, path, receivingReq.URL.Path)
+			assert.Equal(t, gopath.Join(c.endpointPath, path), receivingReq.URL.Path)
 		})
 	}
 }
