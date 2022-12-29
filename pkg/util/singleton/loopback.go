@@ -3,6 +3,8 @@ package singleton
 import (
 	"time"
 
+	controllerruntimeconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
+
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
@@ -48,7 +50,13 @@ func GetKubeClient() kubernetes.Interface {
 
 func InitLoopbackClient(ctx server.PostStartHookContext) error {
 	var err error
-	copiedCfg := clientgorest.CopyConfig(loopback.GetLoopbackMasterClientConfig())
+	cfg := loopback.GetLoopbackMasterClientConfig()
+	if cfg == nil {
+		if cfg, err = controllerruntimeconfig.GetConfig(); err != nil {
+			return err
+		}
+	}
+	copiedCfg := clientgorest.CopyConfig(cfg)
 	copiedCfg.RateLimiter = nil
 	kubeClient, err = kubernetes.NewForConfig(copiedCfg)
 	if err != nil {

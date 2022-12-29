@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/utils/pointer"
+
 	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
@@ -252,6 +255,18 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 		}
 		if healthyReason, ok := secret.Annotations[AnnotationKeyClusterGatewayStatusHealthyReason]; ok {
 			c.Status.HealthyReason = HealthyReasonType(healthyReason)
+		}
+	}
+
+	if utilfeature.DefaultMutableFeatureGate.Enabled(featuregates.ClientIdentityPenetration) {
+		if proxyConfigRaw, ok := secret.Annotations[AnnotationClusterGatewayProxyConfiguration]; ok {
+			proxyConfig := &ClusterGatewayProxyConfiguration{}
+			if err := yaml.Unmarshal([]byte(proxyConfigRaw), proxyConfig); err == nil {
+				for _, rule := range proxyConfig.Spec.Rules {
+					rule.Source.Cluster = pointer.String(c.Name)
+				}
+				c.Spec.ProxyConfig = proxyConfig
+			}
 		}
 	}
 

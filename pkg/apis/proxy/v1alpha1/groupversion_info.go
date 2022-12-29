@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains API Schema definitions for the proxy v1alpha1 API group
-//+kubebuilder:object:generate=true
-//+groupName=proxy.open-cluster-management.io
+// +kubebuilder:object:generate=true
+// +groupName=proxy.open-cluster-management.io
 package v1alpha1
 
 import (

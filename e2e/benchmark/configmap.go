@@ -81,7 +81,6 @@ var _ = Describe("Basic RoundTrip Test",
 					"shouldn't take too long.")
 		}, 100)
 
-
 		Measure("get namespace kube-system from managed cluster", func(b Benchmarker) {
 			runtime := b.Time("runtime", func() {
 				_, err = multiClusterClient.CoreV1().Namespaces().Get(

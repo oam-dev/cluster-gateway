@@ -119,3 +119,18 @@ to the hosting cluster which is basically responsible for:
 
 The addon-manager can be installed via simple helm commands, please refer to
 the installation guide [here](https://open-cluster-management.io/scenarios/pushing-kube-api-requests/#installation).
+
+### Identity Passing
+
+When feature flag `ClientIdentityPenetration` is enabled, cluster-gateway will 
+recognize the identity in the incoming requests and use the [impersonation mechanism](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#user-impersonation)
+to send requests to managed clusters with identity impersonated. By default,
+the impersonated identity is consistent with the identity in the incoming requests.
+
+In the cases that the identity in different clusters are not aligned, the [ClientIdentityExchanger](https://github.com/oam-dev/cluster-gateway/issues/120)
+feature would be helpful to make projections. You can use either the global configuration
+or the cluster configuration for declaring the identity exchange rules, like the given 
+[example](https://github.com/oam-dev/cluster-gateway/tree/master/examples/client-identity-exchanger/config.yaml).
+For global configuration, you need to set up the `--cluster-gateway-proxy-config=<the configuration file path>`
+to enable it. For cluster configuration, you can set the annotation `cluster.core.oam.dev/cluster-gateway-proxy-configuration`
+value to enable the configuration for the requests to the attached cluster.
