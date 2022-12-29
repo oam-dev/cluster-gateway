@@ -64,6 +64,9 @@ func main() {
 			if err := config.ValidateClusterProxy(); err != nil {
 				klog.Fatal(err)
 			}
+			if err := clusterv1alpha1.LoadGlobalClusterGatewayProxyConfig(); err != nil {
+				klog.Fatal(err)
+			}
 			return options
 		}).
 		WithPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient).
@@ -76,6 +79,7 @@ func main() {
 	config.AddClusterProxyFlags(cmd.Flags())
 	config.AddProxyAuthorizationFlags(cmd.Flags())
 	config.AddUserAgentFlags(cmd.Flags())
+	config.AddClusterGatewayProxyConfig(cmd.Flags())
 	cmd.Flags().BoolVarP(&options.OCMIntegration, "ocm-integration", "", false,
 		"Enabling OCM integration, reading cluster CA and api endpoint from managed "+
 			"cluster.")

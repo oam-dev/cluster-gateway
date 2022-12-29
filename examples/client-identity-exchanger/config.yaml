@@ -1,0 +1,16 @@
+apiVersion: cluster.core.oam.dev/v1alpha1
+kind: ClusterGatewayProxyConfiguration
+spec:
+  clientIdentityExchanger:
+    rules:
+      - name: super-user
+        source:
+          group: sudoer
+        type: PrivilegedIdentityExchanger
+      - name: mapping
+        source:
+          user: user-12345
+          cluster: cluster-34567
+        target:
+          user: user-34567
+        type: StaticMappingIdentityExchanger

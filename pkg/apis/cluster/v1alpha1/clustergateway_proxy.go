@@ -26,6 +26,7 @@ import (
 	"time"
 
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/klog/v2"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
@@ -224,7 +225,7 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 	if p.impersonate || utilfeature.DefaultFeatureGate.Enabled(featuregates.ClientIdentityPenetration) {
-		cfg.Impersonate = getImpersonationConfig(request)
+		cfg.Impersonate = p.getImpersonationConfig(request)
 	}
 	rt, err := restclient.TransportFor(cfg)
 	if err != nil {
@@ -305,8 +306,26 @@ func (e ErrorResponderFunc) Error(w http.ResponseWriter, req *http.Request, err 
 	e(w, req, err)
 }
 
-func getImpersonationConfig(req *http.Request) restclient.ImpersonationConfig {
+func (p *proxyHandler) getImpersonationConfig(req *http.Request) restclient.ImpersonationConfig {
 	user, _ := request.UserFrom(req.Context())
+	if p.clusterGateway.Spec.ProxyConfig != nil {
+		matched, ruleName, projected, err := ExchangeIdentity(&p.clusterGateway.Spec.ProxyConfig.Spec.ClientIdentityExchanger, user, p.parentName)
+		if err != nil {
+			klog.Errorf("exchange identity with cluster config error: %w", err)
+		}
+		if matched {
+			klog.Infof("identity exchanged with rule `%s` in the proxy config from cluster `%s`", ruleName, p.clusterGateway.Name)
+			return *projected
+		}
+	}
+	matched, ruleName, projected, err := ExchangeIdentity(&GlobalClusterGatewayProxyConfiguration.Spec.ClientIdentityExchanger, user, p.parentName)
+	if err != nil {
+		klog.Errorf("exchange identity with global config error: %w", err)
+	}
+	if matched {
+		klog.Infof("identity exchanged with rule `%s` in the proxy config from global config", ruleName)
+		return *projected
+	}
 	return restclient.ImpersonationConfig{
 		UserName: user.GetName(),
 		Groups:   user.GetGroups(),

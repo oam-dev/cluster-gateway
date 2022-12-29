@@ -15,9 +15,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/feature"
+	clientgorest "k8s.io/client-go/rest"
 	"k8s.io/component-base/featuregate"
 	k8stesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
@@ -190,4 +192,41 @@ func (f *fakeResponder) Object(statusCode int, obj runtime.Object) {
 
 func (f *fakeResponder) Error(err error) {
 	f.receivingErr = err
+}
+
+func TestGetImpersonationConfig(t *testing.T) {
+	baseReq, err := http.NewRequest(http.MethodGet, "", nil)
+	require.NoError(t, err)
+	base := context.Background()
+
+	GlobalClusterGatewayProxyConfiguration = &ClusterGatewayProxyConfiguration{
+		Spec: ClusterGatewayProxyConfigurationSpec{
+			ClientIdentityExchanger: ClientIdentityExchanger{Rules: []ClientIdentityExchangeRule{{
+				Name:   "name-matcher",
+				Type:   StaticMappingIdentityExchanger,
+				Source: &IdentityExchangerSource{User: pointer.String("test")},
+				Target: &IdentityExchangerTarget{User: "global"},
+			}}},
+		},
+	}
+
+	h := &proxyHandler{clusterGateway: &ClusterGateway{Spec: ClusterGatewaySpec{ProxyConfig: &ClusterGatewayProxyConfiguration{
+		Spec: ClusterGatewayProxyConfigurationSpec{
+			ClientIdentityExchanger: ClientIdentityExchanger{Rules: []ClientIdentityExchangeRule{{
+				Name:   "group-matcher",
+				Type:   StaticMappingIdentityExchanger,
+				Source: &IdentityExchangerSource{Group: pointer.String("group")},
+				Target: &IdentityExchangerTarget{User: "local"},
+			}}},
+		},
+	}}}}
+
+	ctx := request.WithUser(base, &user.DefaultInfo{Name: "test", Groups: []string{"group"}})
+	require.Equal(t, clientgorest.ImpersonationConfig{UserName: "local"}, h.getImpersonationConfig(baseReq.WithContext(ctx)))
+
+	ctx = request.WithUser(base, &user.DefaultInfo{Name: "test", Groups: []string{"group-test"}})
+	require.Equal(t, clientgorest.ImpersonationConfig{UserName: "global"}, h.getImpersonationConfig(baseReq.WithContext(ctx)))
+
+	ctx = request.WithUser(base, &user.DefaultInfo{Name: "tester", Groups: []string{"group-test"}})
+	require.Equal(t, clientgorest.ImpersonationConfig{UserName: "tester", Groups: []string{"group-test"}}, h.getImpersonationConfig(baseReq.WithContext(ctx)))
 }

@@ -56,8 +56,9 @@ type ClusterGatewayList struct {
 
 // ClusterGatewaySpec defines the desired state of ClusterGateway
 type ClusterGatewaySpec struct {
-	Provider string        `json:"provider"`
-	Access   ClusterAccess `json:"access"`
+	Provider    string                            `json:"provider"`
+	Access      ClusterAccess                     `json:"access"`
+	ProxyConfig *ClusterGatewayProxyConfiguration `json:"-"`
 }
 
 type ClusterAccess struct {
