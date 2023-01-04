@@ -550,6 +550,10 @@ func newClusterGatewayDeployment(addon *addonv1alpha1.ClusterManagementAddOn, co
 							Args:            args,
 							VolumeMounts:    volumeMounts,
 							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
+									corev1.ResourceMemory: *resource.NewQuantity(200*1024*1024, resource.BinarySI),
+								},
 								Limits: corev1.ResourceList{
 									corev1.ResourceCPU:    *resource.NewMilliQuantity(500, resource.DecimalSI),
 									corev1.ResourceMemory: *resource.NewQuantity(600*1024*1024, resource.BinarySI),
