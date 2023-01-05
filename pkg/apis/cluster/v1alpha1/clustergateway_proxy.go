@@ -22,11 +22,14 @@ import (
 	"net/url"
 	"os"
 	gopath "path"
+	"regexp"
 	"strings"
 	"time"
 
+	"k8s.io/apiserver/pkg/server"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
@@ -216,7 +219,7 @@ func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	path := strings.TrimPrefix(request.URL.Path, apiPrefix+p.parentName+apiSuffix)
 	newReq.Host = host
 	newReq.URL.Path = gopath.Join(urlAddr.Path, path)
-	newReq.URL.RawQuery = request.URL.RawQuery
+	newReq.URL.RawQuery = unescapeQueryValues(request.URL.Query()).Encode()
 	newReq.RequestURI = newReq.URL.RequestURI()
 
 	cfg, err := NewConfigFromCluster(request.Context(), cluster)
@@ -331,4 +334,56 @@ func (p *proxyHandler) getImpersonationConfig(req *http.Request) restclient.Impe
 		Groups:   user.GetGroups(),
 		Extra:    user.GetExtra(),
 	}
+}
+
+// NewClusterGatewayProxyRequestEscaper wrap the base http.Handler and escape
+// the dryRun parameter. Otherwise, the dryRun request will be blocked by
+// apiserver middlewares
+func NewClusterGatewayProxyRequestEscaper(delegate http.Handler) http.Handler {
+	return &clusterGatewayProxyRequestEscaper{delegate: delegate}
+}
+
+type clusterGatewayProxyRequestEscaper struct {
+	delegate http.Handler
+}
+
+var (
+	clusterGatewayProxyPathPattern = regexp.MustCompile(strings.Join([]string{
+		server.APIGroupPrefix,
+		config.MetaApiGroupName,
+		config.MetaApiVersionName,
+		"clustergateways",
+		"[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+		"proxy"}, "/"))
+	clusterGatewayProxyQueryKeysToEscape = []string{"dryRun"}
+	clusterGatewayProxyEscaperPrefix     = "__"
+)
+
+func (in *clusterGatewayProxyRequestEscaper) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if clusterGatewayProxyPathPattern.MatchString(req.URL.Path) {
+		newReq := req.Clone(req.Context())
+		q := req.URL.Query()
+		for _, k := range clusterGatewayProxyQueryKeysToEscape {
+			if q.Has(k) {
+				q.Set(clusterGatewayProxyEscaperPrefix+k, q.Get(k))
+				q.Del(k)
+			}
+		}
+		newReq.URL.RawQuery = q.Encode()
+		req = newReq
+	}
+	in.delegate.ServeHTTP(w, req)
+}
+
+func unescapeQueryValues(values url.Values) url.Values {
+	unescaped := url.Values{}
+	for k, vs := range values {
+		if strings.HasPrefix(k, clusterGatewayProxyEscaperPrefix) &&
+			slices.Contains(clusterGatewayProxyQueryKeysToEscape,
+				strings.TrimPrefix(k, clusterGatewayProxyEscaperPrefix)) {
+			k = strings.TrimPrefix(k, clusterGatewayProxyEscaperPrefix)
+		}
+		unescaped[k] = vs
+	}
+	return unescaped
 }
