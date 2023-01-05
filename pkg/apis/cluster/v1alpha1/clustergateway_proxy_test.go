@@ -34,6 +34,8 @@ func TestProxyHandler(t *testing.T) {
 		objName         string
 		inputOption     *ClusterGatewayProxyOptions
 		reqInfo         request.RequestInfo
+		query           string
+		expectedQuery   string
 		endpointPath    string
 		expectedFailure bool
 		errorAssertFunc func(t *testing.T, err error)
@@ -106,6 +108,33 @@ func TestProxyHandler(t *testing.T) {
 				Verb: "get",
 			},
 		},
+		{
+			name: "normal proxy with query in endpoint should work",
+			parent: &fakeParentStorage{
+				obj: &ClusterGateway{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "myName",
+					},
+					Spec: ClusterGatewaySpec{
+						Access: ClusterAccess{
+							Credential: &ClusterAccessCredential{
+								Type:                CredentialTypeServiceAccountToken,
+								ServiceAccountToken: "myToken",
+							},
+						},
+					},
+				},
+			},
+			objName: "myName",
+			inputOption: &ClusterGatewayProxyOptions{
+				Path: "/abc",
+			},
+			query:         "__dryRun=All&fieldValidation=Strict",
+			expectedQuery: "dryRun=All&fieldValidation=Strict",
+			reqInfo: request.RequestInfo{
+				Verb: "get",
+			},
+		},
 	}
 
 	for _, c := range cases {
@@ -148,13 +177,14 @@ func TestProxyHandler(t *testing.T) {
 			defer svr.Close()
 			path := "/foo"
 			targetPath := apiPrefix + c.objName + apiSuffix + path
-			resp, err := svr.Client().Get(svr.URL + targetPath)
+			resp, err := svr.Client().Get(svr.URL + targetPath + "?" + c.query)
 			assert.NoError(t, err)
 			data, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			assert.Equal(t, text, string(data))
 			assert.Equal(t, 200, resp.StatusCode)
 			assert.Equal(t, gopath.Join(c.endpointPath, path), receivingReq.URL.Path)
+			assert.Equal(t, c.expectedQuery, receivingReq.URL.RawQuery)
 		})
 	}
 }

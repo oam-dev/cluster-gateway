@@ -69,6 +69,10 @@ func main() {
 			}
 			return options
 		}).
+		WithServerFns(func(server *builder.GenericAPIServer) *builder.GenericAPIServer {
+			server.Handler.FullHandlerChain = clusterv1alpha1.NewClusterGatewayProxyRequestEscaper(server.Handler.FullHandlerChain)
+			return server
+		}).
 		WithPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient).
 		Build()
 	if err != nil {
