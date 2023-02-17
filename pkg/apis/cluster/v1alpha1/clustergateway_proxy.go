@@ -92,6 +92,8 @@ func (c *ClusterGatewayProxy) New() runtime.Object {
 func (in *ClusterGatewayProxy) Destroy() {}
 
 func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options runtime.Object, r registryrest.Responder) (http.Handler, error) {
+	ts := time.Now()
+
 	proxyOpts, ok := options.(*ClusterGatewayProxyOptions)
 	if !ok {
 		return nil, fmt.Errorf("invalid options object: %#v", options)
@@ -161,6 +163,7 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 		finishFunc: func(code int) {
 			metrics.RecordProxiedRequestsByResource(proxyReqInfo.Resource, proxyReqInfo.Verb, code)
 			metrics.RecordProxiedRequestsByCluster(id, code)
+			metrics.RecordProxiedRequestsDuration(proxyReqInfo.Resource, proxyReqInfo.Verb, id, code, time.Since(ts))
 		},
 	}, nil
 }
@@ -197,7 +200,21 @@ var (
 	apiSuffix = "/proxy"
 )
 
-func (p *proxyHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+type proxyResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (in *proxyResponseWriter) WriteHeader(statusCode int) {
+	in.statusCode = statusCode
+	in.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (p *proxyHandler) ServeHTTP(_writer http.ResponseWriter, request *http.Request) {
+	writer := &proxyResponseWriter{_writer, http.StatusOK}
+	defer func() {
+		p.finishFunc(writer.statusCode)
+	}()
 	cluster := p.clusterGateway
 	if cluster.Spec.Access.Credential == nil {
 		responsewriters.InternalError(writer, request, fmt.Errorf("proxying cluster %s not support due to lacking credentials", cluster.Name))

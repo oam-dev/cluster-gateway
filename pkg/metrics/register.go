@@ -13,6 +13,7 @@ var registerMetrics sync.Once
 var metrics = []compbasemetrics.Registerable{
 	ocmProxiedRequestsByResourceTotal,
 	ocmProxiedRequestsByClusterTotal,
+	ocmProxiedRequestsDurationHistogram,
 	ocmProxiedClusterEscalationRequestDurationHistogram,
 }
 
