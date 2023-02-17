@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"strconv"
+	"time"
 
 	compbasemetrics "k8s.io/component-base/metrics"
 )
@@ -45,6 +46,17 @@ var (
 		},
 		[]string{proxiedCluster, code},
 	)
+	ocmProxiedRequestsDurationHistogram = compbasemetrics.NewHistogramVec(
+		&compbasemetrics.HistogramOpts{
+			Namespace:      namespace,
+			Subsystem:      subsystem,
+			Name:           "proxied_request_duration_seconds",
+			Help:           "Cluster proxy request time cost",
+			Buckets:        requestDurationSecondsBuckets,
+			StabilityLevel: compbasemetrics.ALPHA,
+		},
+		[]string{proxiedResource, proxiedVerb, proxiedCluster, code},
+	)
 	ocmProxiedClusterEscalationRequestDurationHistogram = compbasemetrics.NewHistogramVec(
 		&compbasemetrics.HistogramOpts{
 			Namespace:      namespace,
@@ -68,4 +80,10 @@ func RecordProxiedRequestsByCluster(cluster string, code int) {
 	ocmProxiedRequestsByClusterTotal.
 		WithLabelValues(cluster, strconv.Itoa(code)).
 		Inc()
+}
+
+func RecordProxiedRequestsDuration(resource string, verb string, cluster string, code int, ts time.Duration) {
+	ocmProxiedRequestsDurationHistogram.
+		WithLabelValues(resource, verb, cluster, strconv.Itoa(code)).
+		Observe(ts.Seconds())
 }
