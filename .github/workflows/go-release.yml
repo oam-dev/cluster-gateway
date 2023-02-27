@@ -34,6 +34,8 @@ jobs:
           echo "TRIMED_RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
       - name: verify chart version
         run: |
+          sed -i 's/version: 0.1.0/version: ${{ env.TRIMED_RELEASE_VERSION }}/g' ./charts/cluster-gateway/Chart.yaml
+          sed -i 's/version: 0.1.0/version: ${{ env.TRIMED_RELEASE_VERSION }}/g' ./charts/addon-manager/Chart.yaml
           cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
           cat ./charts/addon-manager/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
     outputs:
