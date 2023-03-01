@@ -202,6 +202,8 @@ var (
 
 type proxyResponseWriter struct {
 	http.ResponseWriter
+	http.Hijacker
+	http.Flusher
 	statusCode int
 }
 
@@ -210,8 +212,15 @@ func (in *proxyResponseWriter) WriteHeader(statusCode int) {
 	in.ResponseWriter.WriteHeader(statusCode)
 }
 
+func newProxyResponseWriter(_writer http.ResponseWriter) *proxyResponseWriter {
+	writer := &proxyResponseWriter{ResponseWriter: _writer, statusCode: http.StatusOK}
+	writer.Hijacker, _ = _writer.(http.Hijacker)
+	writer.Flusher, _ = _writer.(http.Flusher)
+	return writer
+}
+
 func (p *proxyHandler) ServeHTTP(_writer http.ResponseWriter, request *http.Request) {
-	writer := &proxyResponseWriter{_writer, http.StatusOK}
+	writer := newProxyResponseWriter(_writer)
 	defer func() {
 		p.finishFunc(writer.statusCode)
 	}()
