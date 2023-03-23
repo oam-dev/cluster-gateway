@@ -132,6 +132,7 @@ jobs:
           tag: ${{ needs.env.outputs.RELEASE_VERSION }}
           artifacts: "go/src/oamdev/cluster-gateway/release/*.tgz"
           token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
       - name: submit charts to OCM chart repo
         uses: actions/github-script@v6
         with:
