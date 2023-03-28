@@ -3,6 +3,7 @@ package singleton
 import (
 	"time"
 
+	"k8s.io/klog/v2"
 	controllerruntimeconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
@@ -77,7 +78,12 @@ func InitLoopbackClient(ctx server.PostStartHookContext) error {
 	}
 
 	if utilfeature.DefaultMutableFeatureGate.Enabled(featuregates.OCMClusterCache) {
-		if err := setOCMClusterInformer(ocmClient, ctx.StopCh); err != nil {
+		installed, err := clusterutil.IsOCMManagedClusterInstalled(ocmClient)
+		if err != nil {
+			klog.Error(err)
+		} else if !installed {
+			klog.Infof("OCM ManagedCluster CRD not installed, skip bootstrapping informer for OCM ManagedCluster")
+		} else if err := setOCMClusterInformer(ocmClient, ctx.StopCh); err != nil {
 			return err
 		}
 		clusterControl = clusterutil.NewCacheOCMClusterControl(clusterLister)

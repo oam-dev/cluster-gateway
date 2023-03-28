@@ -2,8 +2,11 @@ package cluster
 
 import (
 	"context"
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1Lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -62,4 +65,22 @@ func (c *cacheOCMClusterControl) Get(ctx context.Context, name string) (*cluster
 
 func (c *cacheOCMClusterControl) List(ctx context.Context) ([]*clusterv1.ManagedCluster, error) {
 	return c.clusterLister.List(labels.Everything())
+}
+
+// IsOCMManagedClusterInstalled check if managed cluster is installed in the cluster
+func IsOCMManagedClusterInstalled(ocmClient ocmclient.Interface) (bool, error) {
+	_, resources, err := ocmClient.Discovery().ServerGroupsAndResources()
+	if err != nil {
+		return false, fmt.Errorf("unable to get api-resources: %w", err)
+	}
+	for _, resource := range resources {
+		if gv, _ := schema.ParseGroupVersion(resource.GroupVersion); gv.Group == clusterv1.GroupName {
+			for _, rsc := range resource.APIResources {
+				if rsc.Kind == "ManagedCluster" {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
 }
