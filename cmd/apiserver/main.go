@@ -44,6 +44,7 @@ func main() {
 	cmd, err := builder.APIServer.
 		// +kubebuilder:scaffold:resource-register
 		WithResource(&clusterv1alpha1.ClusterGateway{}).
+		WithResource(&clusterv1alpha1.VirtualCluster{}).
 		WithLocalDebugExtension().
 		ExposeLoopbackMasterClientConfig().
 		ExposeLoopbackAuthorizer().
@@ -80,6 +81,7 @@ func main() {
 	}
 	config.AddLogFlags(cmd.Flags())
 	config.AddSecretFlags(cmd.Flags())
+	config.AddVirtualClusterFlags(cmd.Flags())
 	config.AddClusterProxyFlags(cmd.Flags())
 	config.AddProxyAuthorizationFlags(cmd.Flags())
 	config.AddUserAgentFlags(cmd.Flags())

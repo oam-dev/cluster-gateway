@@ -3,14 +3,6 @@ package singleton
 import (
 	"time"
 
-	"k8s.io/klog/v2"
-	controllerruntimeconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	"github.com/oam-dev/cluster-gateway/pkg/config"
-	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
-	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
-	clusterutil "github.com/oam-dev/cluster-gateway/pkg/util/cluster"
-
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/server"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -19,14 +11,24 @@ import (
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	clientgorest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1Lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	controllerruntimeconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	"github.com/oam-dev/cluster-gateway/pkg/config"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
+	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
+	clusterutil "github.com/oam-dev/cluster-gateway/pkg/util/cluster"
+	"github.com/oam-dev/cluster-gateway/pkg/util/scheme"
 )
 
 var kubeClient kubernetes.Interface
 var ocmClient ocmclient.Interface
+var ctrlClient client.Client
 
 var secretInformer cache.SharedIndexInformer
 var secretLister corev1lister.SecretLister
@@ -49,6 +51,14 @@ func GetKubeClient() kubernetes.Interface {
 	return kubeClient
 }
 
+func GetCtrlClient() client.Client {
+	return ctrlClient
+}
+
+func SetCtrlClient(cli client.Client) {
+	ctrlClient = cli
+}
+
 func InitLoopbackClient(ctx server.PostStartHookContext) error {
 	var err error
 	cfg := loopback.GetLoopbackMasterClientConfig()
@@ -64,6 +74,10 @@ func InitLoopbackClient(ctx server.PostStartHookContext) error {
 		return err
 	}
 	ocmClient, err = ocmclient.NewForConfig(copiedCfg)
+	if err != nil {
+		return err
+	}
+	ctrlClient, err = client.New(copiedCfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
 		return err
 	}
