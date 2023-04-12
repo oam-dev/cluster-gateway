@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -169,13 +168,12 @@ func (c *ClusterGatewayInstaller) Reconcile(ctx context.Context, request reconci
 		ServiceNameClusterGateway + "." + clusterGatewayConfiguration.Spec.InstallNamespace + ".svc",
 	}
 	rotation := certrotation.TargetRotation{
-		Namespace:     clusterGatewayConfiguration.Spec.InstallNamespace,
-		Name:          SecretNameClusterGatewayTLSCert,
-		HostNames:     sans,
-		Validity:      time.Hour * 24 * 180,
-		Lister:        c.secretLister,
-		Client:        c.nativeClient.CoreV1(),
-		EventRecorder: events.NewInMemoryRecorder("ClusterGatewayInstaller"),
+		Namespace: clusterGatewayConfiguration.Spec.InstallNamespace,
+		Name:      SecretNameClusterGatewayTLSCert,
+		HostNames: sans,
+		Validity:  time.Hour * 24 * 180,
+		Lister:    c.secretLister,
+		Client:    c.nativeClient.CoreV1(),
 	}
 	if err := rotation.EnsureTargetCertKeyPair(c.caPair, c.caPair.Config.Certs); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed rotating server tls cert")
