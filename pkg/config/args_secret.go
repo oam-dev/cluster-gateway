@@ -6,7 +6,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var SecretNamespace string
+// SecretNamespace the namespace to search cluster credentials
+var SecretNamespace = "vela-system"
 
 func ValidateSecret() error {
 	if len(SecretNamespace) == 0 {
@@ -16,6 +17,6 @@ func ValidateSecret() error {
 }
 
 func AddSecretFlags(set *pflag.FlagSet) {
-	set.StringVarP(&SecretNamespace, "secret-namespace", "", "",
+	set.StringVarP(&SecretNamespace, "secret-namespace", "", SecretNamespace,
 		"the namespace to reading secrets")
 }
