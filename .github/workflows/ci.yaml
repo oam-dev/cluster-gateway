@@ -59,6 +59,15 @@ jobs:
           kubernetesVersion: v1.22.0
       - name: Run Make test
         run: make test
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: cover.out
+          flags: unit-test
+          name: codecov-umbrella
+          fail_ci_if_error: true
+          verbose: true
       - name: Run Make
         run: make
 
