@@ -87,11 +87,10 @@ var _ = Describe("Test Cluster API", func() {
 		Ω(c.New()).To(Equal(&v1alpha1.VirtualCluster{}))
 		Ω(c.NamespaceScoped()).To(BeFalse())
 		Ω(c.ShortNames()).To(SatisfyAll(
-			ContainElement("vc"),
+			ContainElement("vcl"),
+			ContainElement("vcls"),
 			ContainElement("vcluster"),
 			ContainElement("vclusters"),
-			ContainElement("virtual-cluster"),
-			ContainElement("virtual-clusters"),
 		))
 		Ω(c.GetGroupVersionResource().GroupVersion()).To(Equal(v1alpha1.SchemeGroupVersion))
 		Ω(c.GetGroupVersionResource().Resource).To(Equal("virtualclusters"))
