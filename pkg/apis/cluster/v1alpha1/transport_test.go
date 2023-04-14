@@ -3,6 +3,8 @@ package v1alpha1
 import (
 	"context"
 	"net"
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -19,6 +21,8 @@ func TestClusterRestConfigConversion(t *testing.T) {
 	testCAData := []byte(`test-ca`)
 	testCertData := []byte(`test-cert`)
 	testKeyData := []byte(`test-key`)
+	proxyURLData := []byte(`socks5://localhost:1080`)
+	proxyURL, _ := url.Parse(string(proxyURLData))
 	testDialFunc := func(ctx context.Context, net, addr string) (net.Conn, error) {
 		return nil, nil
 	}
@@ -179,6 +183,38 @@ func TestClusterRestConfigConversion(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "proxy-url should work",
+			clusterGateway: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "my-cluster",
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								Address:  "https://foo.bar:33",
+								ProxyURL: pointer.String(string(proxyURLData)),
+							},
+						},
+						Credential: &ClusterAccessCredential{
+							Type:                CredentialTypeServiceAccountToken,
+							ServiceAccountToken: testToken,
+						},
+					},
+				},
+			},
+			expectedCfg: &rest.Config{
+				Host:        "https://foo.bar:33",
+				Timeout:     40 * time.Second,
+				BearerToken: testToken,
+				Proxy:       http.ProxyURL(proxyURL),
+				TLSClientConfig: rest.TLSClientConfig{
+					ServerName: "foo.bar",
+				},
+			},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -193,6 +229,11 @@ func TestClusterRestConfigConversion(t *testing.T) {
 				assert.ObjectsAreEqual(c.expectedCfg.Dial, cfg.Dial)
 				c.expectedCfg.Dial = nil
 				cfg.Dial = nil
+			}
+			if cfg.Proxy != nil {
+				assert.NotNil(t, c.expectedCfg.Proxy)
+				cfg.Proxy = nil
+				c.expectedCfg.Proxy = nil
 			}
 			assert.Equal(t, c.expectedCfg, cfg)
 		})

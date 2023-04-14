@@ -189,6 +189,10 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	if !ok {
 		endpointType = string(ClusterEndpointTypeConst)
 	}
+	var proxyURL *string
+	if url, useProxy := secret.Data["proxy-url"]; useProxy && len(url) > 0 {
+		proxyURL = pointer.String(string(url))
+	}
 	switch ClusterEndpointType(endpointType) {
 	case ClusterEndpointTypeClusterProxy:
 		c.Spec.Access.Endpoint = &ClusterEndpoint{
@@ -206,6 +210,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 				Const: &ClusterEndpointConst{
 					Address:  apiServerEndpoint,
 					Insecure: &insecure,
+					ProxyURL: proxyURL,
 				},
 			}
 		} else {
@@ -214,6 +219,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 				Const: &ClusterEndpointConst{
 					Address:  apiServerEndpoint,
 					CABundle: caData,
+					ProxyURL: proxyURL,
 				},
 			}
 		}
