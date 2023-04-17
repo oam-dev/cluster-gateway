@@ -3,11 +3,11 @@ package v1alpha1
 import (
 	"context"
 	"net"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
-	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	grpccredentials "google.golang.org/grpc/credentials"
@@ -16,6 +16,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	konnectivity "sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client"
 	"sigs.k8s.io/apiserver-network-proxy/pkg/util"
+
+	"github.com/oam-dev/cluster-gateway/pkg/config"
 )
 
 var DialerGetter = func(ctx context.Context) (k8snet.DialFunc, error) {
@@ -72,6 +74,14 @@ func NewConfigFromCluster(ctx context.Context, c *ClusterGateway) (*restclient.C
 			host = u.Host
 		}
 		cfg.ServerName = host // apiserver may listen on SNI cert
+
+		if c.Spec.Access.Endpoint.Const.ProxyURL != nil {
+			_url, _err := url.Parse(*c.Spec.Access.Endpoint.Const.ProxyURL)
+			if _err != nil {
+				return nil, _err
+			}
+			cfg.Proxy = http.ProxyURL(_url)
+		}
 	case ClusterEndpointTypeClusterProxy:
 		cfg.Host = c.Name // the same as the cluster name
 		cfg.Insecure = true

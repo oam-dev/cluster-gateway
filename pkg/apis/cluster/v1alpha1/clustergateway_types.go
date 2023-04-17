@@ -108,6 +108,8 @@ type ClusterEndpointConst struct {
 	// Insecure indicates the cluster should be access'd w/o verifying
 	// CA certificate at client-side.
 	Insecure *bool `json:"insecure,omitempty"`
+	// ProxyURL indicates the proxy url of the server
+	ProxyURL *string `json:"proxy-url,omitempty"`
 }
 
 type ClusterAccessCredential struct {
