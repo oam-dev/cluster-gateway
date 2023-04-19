@@ -39,9 +39,14 @@ jobs:
           OS=linux \
           ARCH=${{ matrix.arch }} \
             make image
+      - name: Login docker.io
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: push
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
           docker push oamdev/cluster-gateway:latest-${{ matrix.arch }}
           docker push oamdev/cluster-gateway-addon-manager:latest-${{ matrix.arch }}
   image-manifest:
@@ -54,9 +59,14 @@ jobs:
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
+      - name: Login docker.io
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: create
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
           docker manifest create oamdev/cluster-gateway:latest \
             oamdev/cluster-gateway:latest-amd64 \
             oamdev/cluster-gateway:latest-arm64

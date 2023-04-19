@@ -64,15 +64,25 @@ jobs:
           OS=linux \
           ARCH=${{ matrix.arch }} \
             make image
+      - name: Login docker.io
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: push image multi arch
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
           docker push oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
           docker push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
+      - name: Login Alibaba Cloud ACR
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
+        with:
+          registry: ${{ secrets.ACR_DOMAIN }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
       - name: push image multi arch to acr
         run: |
           docker tag oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }} ${{ secrets.ACR_DOMAIN }}/oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
-          echo ${{ secrets.ACR_PASSWORD }} | docker login ${{ secrets.ACR_DOMAIN }} --username ${{ secrets.ACR_USERNAME }} --password-stdin
           docker push ${{ secrets.ACR_DOMAIN }}/oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
   image-manifest:
     name: image-manifest
@@ -84,9 +94,14 @@ jobs:
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
+      - name: Login docker.io
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: create
         run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USER }} --password-stdin
           docker manifest create oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }} \
             oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 \
             oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-arm64
