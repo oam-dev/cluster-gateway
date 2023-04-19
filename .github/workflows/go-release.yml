@@ -3,7 +3,7 @@ name: GoRelease
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
 env:
   # Common versions
   GO_VERSION: '1.19'
@@ -74,16 +74,6 @@ jobs:
         run: |
           docker push oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
           docker push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
-      - name: Login Alibaba Cloud ACR
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
-        with:
-          registry: ${{ secrets.ACR_DOMAIN }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
-      - name: push image multi arch to acr
-        run: |
-          docker tag oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }} ${{ secrets.ACR_DOMAIN }}/oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
-          docker push ${{ secrets.ACR_DOMAIN }}/oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
   image-manifest:
     name: image-manifest
     runs-on: ubuntu-latest
@@ -148,26 +138,27 @@ jobs:
           artifacts: "go/src/oamdev/cluster-gateway/release/*.tgz"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
-      - name: submit charts to OCM chart repo
-        uses: actions/github-script@v6
-        with:
-          debug: ${{ secrets.ACTIONS_RUNNER_DEBUG }}
-          github-token: ${{ secrets.PAT_TOKEN }}
-          script: |
-            try {
-              const result = await github.rest.actions.createWorkflowDispatch({
-                owner: 'open-cluster-management-io',
-                repo: 'helm-charts',
-                workflow_id: 'download-chart.yml',
-                ref: 'main',
-                inputs: {
-                  repo: "${{ github.repository }}",
-                  version: "${{ needs.env.outputs.TRIMED_RELEASE_VERSION }}",
-                  "chart-name": "cluster-gateway-addon-manager",
-                },
-              })
-              console.log(result);
-            } catch(error) {
-              console.error(error);
-              core.setFailed(error);
-            }
+#      lack secrets.PAT_TOKEN from ocm, commented now
+#      - name: submit charts to OCM chart repo
+#        uses: actions/github-script@v6
+#        with:
+#          debug: ${{ secrets.ACTIONS_RUNNER_DEBUG }}
+#          github-token: ${{ secrets.PAT_TOKEN }}
+#          script: |
+#            try {
+#              const result = await github.rest.actions.createWorkflowDispatch({
+#                owner: 'open-cluster-management-io',
+#                repo: 'helm-charts',
+#                workflow_id: 'download-chart.yml',
+#                ref: 'main',
+#                inputs: {
+#                  repo: "${{ github.repository }}",
+#                  version: "${{ needs.env.outputs.TRIMED_RELEASE_VERSION }}",
+#                  "chart-name": "cluster-gateway-addon-manager",
+#                },
+#              })
+#              console.log(result);
+#            } catch(error) {
+#              console.error(error);
+#              core.setFailed(error);
+#            }
