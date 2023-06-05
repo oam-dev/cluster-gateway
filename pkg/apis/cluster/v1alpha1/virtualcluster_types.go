@@ -121,6 +121,11 @@ func (in *VirtualCluster) ShortNames() []string {
 	return []string{"vc", "vcluster", "vclusters", "virtual-cluster", "virtual-clusters"}
 }
 
+// GetSingularName implements SingularNameProvider
+func (in *VirtualCluster) GetSingularName() string {
+	return "virtualcluster"
+}
+
 // GetFullName returns the name with alias
 func (in *VirtualCluster) GetFullName() string {
 	if in.Spec.Alias == "" {

@@ -2,6 +2,9 @@ package event
 
 import (
 	"github.com/oam-dev/cluster-gateway/pkg/common"
+
+	"context"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
@@ -16,19 +19,19 @@ type APIServiceHandler struct {
 	WatchingName string
 }
 
-func (a *APIServiceHandler) Create(event event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Create(_ context.Context, event event.CreateEvent, q workqueue.RateLimitingInterface) {
 	a.process(event.Object.(*apiregistrationv1.APIService), q)
 }
 
-func (a *APIServiceHandler) Update(event event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Update(_ context.Context, event event.UpdateEvent, q workqueue.RateLimitingInterface) {
 	a.process(event.ObjectNew.(*apiregistrationv1.APIService), q)
 }
 
-func (a *APIServiceHandler) Delete(event event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Delete(_ context.Context, event event.DeleteEvent, q workqueue.RateLimitingInterface) {
 	a.process(event.Object.(*apiregistrationv1.APIService), q)
 }
 
-func (a *APIServiceHandler) Generic(event event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Generic(_ context.Context, event event.GenericEvent, q workqueue.RateLimitingInterface) {
 	a.process(event.Object.(*apiregistrationv1.APIService), q)
 }
 
@@ -40,5 +43,4 @@ func (a *APIServiceHandler) process(apiService *apiregistrationv1.APIService, q 
 			},
 		})
 	}
-
 }

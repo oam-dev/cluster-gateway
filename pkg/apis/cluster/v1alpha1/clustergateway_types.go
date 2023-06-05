@@ -161,6 +161,11 @@ func (in *ClusterGateway) Validate(ctx context.Context) field.ErrorList {
 	return ValidateClusterGateway(in)
 }
 
+// GetSingularName implements SingularNameProvider
+func (in *ClusterGateway) GetSingularName() string {
+	return "clustergateway"
+}
+
 var _ resource.ObjectList = &ClusterGatewayList{}
 
 func (in *ClusterGatewayList) GetListMeta() *metav1.ListMeta {
