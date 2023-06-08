@@ -13,6 +13,7 @@ func init() {
 }
 
 const (
+	// HealthinessCheck
 	// owner: @yue9944882
 	// alpha: v1.1.12
 	//
@@ -25,6 +26,7 @@ const (
 	// cluster by dialing "/healthz" api path.
 	HealthinessCheck featuregate.Feature = "HealthinessCheck"
 
+	// SecretCache
 	// owner: @yue9944882
 	// alpha: v1.1.15
 	//
@@ -32,6 +34,15 @@ const (
 	// provides a cache for reading secret data.
 	SecretCache featuregate.Feature = "SecretCache"
 
+	// OCMClusterCache
+	// owner: @ivan-cai
+	// beta: v1.6.0
+	//
+	// SecretCache runs a OCM ManagedCluster informer inside the apiserver which
+	// provides a cache for reading ManagedCluster.
+	OCMClusterCache featuregate.Feature = "OCMClusterCache"
+
+	// ClientIdentityPenetration
 	// owner: @somefive
 	// alpha: v1.4.0
 	//
@@ -39,17 +50,18 @@ const (
 	// when accessing apiserver in ManagedCluster
 	ClientIdentityPenetration featuregate.Feature = "ClientIdentityPenetration"
 
-	// owner: @ivan-cai
-	// beta: v1.6.0
+	// VirtualCluster
+	// owner: @somefive
+	// alpha: v1.9.0
 	//
-	// SecretCache runs a OCM ManagedCluster informer inside the apiserver which
-	// provides a cache for reading ManagedCluster.
-	OCMClusterCache featuregate.Feature = "OCMClusterCache"
+	// VirtualCluster add virtual cluster api to access managed cluster metadata
+	VirtualCluster featuregate.Feature = "VirtualCluster"
 )
 
 var DefaultKubeFedFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-	HealthinessCheck:          {Default: false, PreRelease: featuregate.Alpha},
+	HealthinessCheck:          {Default: false, PreRelease: featuregate.Beta},
 	SecretCache:               {Default: true, PreRelease: featuregate.Beta},
-	ClientIdentityPenetration: {Default: false, PreRelease: featuregate.Alpha},
 	OCMClusterCache:           {Default: true, PreRelease: featuregate.Beta},
+	ClientIdentityPenetration: {Default: false, PreRelease: featuregate.Alpha},
+	VirtualCluster:            {Default: false, PreRelease: featuregate.Alpha},
 }

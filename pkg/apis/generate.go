@@ -20,5 +20,8 @@ limitations under the License.
 package apis
 
 import (
-	_ "sigs.k8s.io/controller-tools/pkg/version" //nolint:typecheck
+	_ "github.com/fatih/color"
+	_ "github.com/gobuffalo/flect"
+	_ "golang.org/x/tools/go/packages"
+	_ "sigs.k8s.io/controller-tools/pkg/version"
 )

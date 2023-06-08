@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/version"
 	ocmclusterv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,25 +53,103 @@ var (
 	// AnnotationClusterAlias the annotation key for cluster alias
 	AnnotationClusterAlias = config.MetaApiGroupName + "/cluster-alias"
 
+	// AnnotationClusterDescription the annotation key for cluster description
+	AnnotationClusterDescription = config.MetaApiGroupName + "/cluster-description"
+
+	// AnnotationClusterVersion the annotation key for cluster version
+	AnnotationClusterVersion = config.MetaApiGroupName + "/cluster-version"
+
+	// AnnotationClusterHealth the annotation key for cluster health
+	AnnotationClusterHealth = config.MetaApiGroupName + "/cluster-health"
+
+	// AnnotationClusterResources the annotation key for cluster resources
+	AnnotationClusterResources = config.MetaApiGroupName + "/cluster-resources"
+
 	// LabelClusterControlPlane identifies whether the cluster is the control plane
 	LabelClusterControlPlane = config.MetaApiGroupName + "/control-plane"
 )
 
 // VirtualCluster is an extension model for cluster underlying secrets or OCM ManagedClusters
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:deepcopy-gen=false
 type VirtualCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec VirtualClusterSpec `json:"spec,omitempty"`
+	Spec   VirtualClusterSpec   `json:"spec,omitempty"`
+	Status VirtualClusterStatus `json:"status,omitempty"`
+
+	// Raw stores the underlying object
+	Raw client.Object `json:"-"`
+}
+
+func (in *VirtualCluster) DeepCopy() *VirtualCluster {
+	if in == nil {
+		return nil
+	}
+	out := new(VirtualCluster)
+	in.DeepCopyInto(out)
+	return out
+}
+
+func (in *VirtualCluster) DeepCopyInto(out *VirtualCluster) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	if in.Raw != nil {
+		out.Raw = in.Raw.DeepCopyObject().(client.Object)
+	} else {
+		out.Raw = nil
+	}
+}
+
+func (in *VirtualCluster) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	}
+	return nil
 }
 
 // VirtualClusterSpec spec of cluster
 type VirtualClusterSpec struct {
 	Alias          string         `json:"alias,omitempty"`
-	Accepted       bool           `json:"accepted,omitempty"`
+	Description    string         `json:"description,omitempty"`
 	Endpoint       string         `json:"endpoint,omitempty"`
-	CredentialType CredentialType `json:"credential-type,omitempty"`
+	CredentialType CredentialType `json:"credentialType,omitempty"`
+}
+
+// VirtualClusterStatus status of cluster
+type VirtualClusterStatus struct {
+	// Health represents the cluster healthiness
+	VirtualClusterHealthiness `json:",inline"`
+	// Version represents the cluster version info of the managed cluster
+	Version version.Info `json:"version,omitempty"`
+	// Resources represents the cluster resources
+	Resources VirtualClusterResources `json:"resources,omitempty"`
+}
+
+// VirtualClusterHealthiness the healthiness of the managed cluster
+type VirtualClusterHealthiness struct {
+	Healthy       bool        `json:"healthy,omitempty"`
+	Reason        string      `json:"reason,omitempty"`
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+}
+
+// VirtualClusterResources the resources of the managed cluster
+type VirtualClusterResources struct {
+	// Capacity represents the total resource capacity from all nodeStatuses
+	// on the managed cluster.
+	Capacity corev1.ResourceList `json:"capacity,omitempty"`
+
+	// Allocatable represents the total allocatable resources on the managed cluster.
+	Allocatable corev1.ResourceList `json:"allocatable,omitempty"`
+
+	// Usage represents the total resource usage on the managed cluster.
+	Usage corev1.ResourceList `json:"usage,omitempty"`
+
+	MasterNodeCount int `json:"masterNodeCount,omitempty"`
+	WorkerNodeCount int `json:"workerNodeCount,omitempty"`
 }
 
 // VirtualClusterList list for VirtualCluster
@@ -118,7 +198,7 @@ func (in *VirtualCluster) IsStorageVersion() bool {
 
 // ShortNames delivers a list of short names for a resource.
 func (in *VirtualCluster) ShortNames() []string {
-	return []string{"vc", "vcluster", "vclusters", "virtual-cluster", "virtual-clusters"}
+	return []string{"vcl", "vcls", "vcluster", "vclusters"}
 }
 
 // GetFullName returns the name with alias
@@ -157,11 +237,11 @@ func (in *VirtualCluster) List(ctx context.Context, options *internalversion.Lis
 func (in *VirtualCluster) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	switch obj := object.(type) {
 	case *VirtualCluster:
-		return printCluster(obj), nil
+		return obj.PrintTable(), nil
 	case *VirtualClusterList:
-		return printClusterList(obj), nil
+		return obj.PrintTable(), nil
 	default:
-		return nil, fmt.Errorf("unknown type %T", object)
+		return nil, fmt.Errorf("unprintable type %T", object)
 	}
 }
 
@@ -171,85 +251,92 @@ var (
 		{Name: "Alias", Type: "string", Description: "the cluster provider type"},
 		{Name: "Credential_Type", Type: "string", Description: "the credential type"},
 		{Name: "Endpoint", Type: "string", Description: "the endpoint"},
-		{Name: "Accepted", Type: "boolean", Description: "the acceptance of the cluster"},
-		{Name: "Labels", Type: "string", Description: "the labels of the cluster"},
+		{Name: "Labels", Type: "string", Description: "the labels of the cluster", Priority: 20},
+		{Name: "Version", Type: "string", Description: "the version of the cluster", Priority: 20},
 		{Name: "Creation_Timestamp", Type: "dateTime", Description: "the creation timestamp of the cluster", Priority: 10},
 	}
 )
 
-func printCluster(in *VirtualCluster) *metav1.Table {
+// PrintTable print table
+func (in *VirtualCluster) PrintTable() *metav1.Table {
 	return &metav1.Table{
 		ColumnDefinitions: virtualClusterDefinitions,
-		Rows:              []metav1.TableRow{printClusterRow(in)},
+		Rows:              []metav1.TableRow{in.printTableRow()},
 	}
 }
 
-func printClusterList(in *VirtualClusterList) *metav1.Table {
+// PrintTable print table
+func (in *VirtualClusterList) PrintTable() *metav1.Table {
 	t := &metav1.Table{
 		ColumnDefinitions: virtualClusterDefinitions,
 	}
 	for _, c := range in.Items {
-		t.Rows = append(t.Rows, printClusterRow(c.DeepCopy()))
+		t.Rows = append(t.Rows, c.printTableRow())
 	}
 	return t
 }
 
-func printClusterRow(c *VirtualCluster) metav1.TableRow {
+func (in *VirtualCluster) printTableRow() metav1.TableRow {
 	var ls []string
-	for k, v := range c.GetLabels() {
+	for k, v := range in.GetLabels() {
 		ls = append(ls, fmt.Sprintf("%s=%s", k, v))
 	}
 	row := metav1.TableRow{
-		Object: runtime.RawExtension{Object: c},
+		Object: runtime.RawExtension{Object: in},
 	}
 	row.Cells = append(row.Cells,
-		c.Name,
-		c.Spec.Alias,
-		c.Spec.CredentialType,
-		c.Spec.Endpoint,
-		c.Spec.Accepted,
+		in.Name,
+		in.Spec.Alias,
+		in.Spec.CredentialType,
+		in.Spec.Endpoint,
 		strings.Join(ls, ","),
-		c.GetCreationTimestamp())
+		in.Status.Version.String(),
+		in.GetCreationTimestamp())
 	return row
 }
 
-func extractLabels(labels map[string]string) map[string]string {
-	_labels := make(map[string]string)
-	for k, v := range labels {
+func dropMapKeyWithApiGroupPrefix(m map[string]string) map[string]string {
+	_m := make(map[string]string)
+	for k, v := range m {
 		if !strings.HasPrefix(k, config.MetaApiGroupName) {
-			_labels[k] = v
+			_m[k] = v
 		}
 	}
-	return _labels
+	return _m
 }
 
 func newVirtualCluster(obj client.Object) *VirtualCluster {
-	cluster := &VirtualCluster{}
+	cluster := &VirtualCluster{Raw: obj}
 	cluster.SetGroupVersionKind(SchemeGroupVersion.WithKind("VirtualCluster"))
 	if obj != nil {
 		cluster.SetName(obj.GetName())
 		cluster.SetCreationTimestamp(obj.GetCreationTimestamp())
-		cluster.SetLabels(extractLabels(obj.GetLabels()))
+		cluster.SetLabels(dropMapKeyWithApiGroupPrefix(obj.GetLabels()))
 		if annotations := obj.GetAnnotations(); annotations != nil {
 			cluster.Spec.Alias = annotations[AnnotationClusterAlias]
+			cluster.Spec.Description = annotations[AnnotationClusterDescription]
+			_ = json.Unmarshal([]byte(annotations[AnnotationClusterVersion]), &cluster.Status.Version)
+			_ = json.Unmarshal([]byte(annotations[AnnotationClusterHealth]), &cluster.Status.VirtualClusterHealthiness)
+			if raw := annotations[AnnotationClusterResources]; raw != "" {
+				_ = json.Unmarshal([]byte(annotations[AnnotationClusterResources]), &cluster.Status.Resources)
+			}
 		}
 	}
-	cluster.Spec.Accepted = true
 	cluster.Spec.Endpoint = ClusterBlankEndpoint
 	metav1.SetMetaDataLabel(&cluster.ObjectMeta, LabelClusterControlPlane, fmt.Sprintf("%t", obj == nil))
 	return cluster
 }
 
-// NewLocalCluster return the local cluster
-func NewLocalCluster() *VirtualCluster {
+// NewLocalVirtualCluster return the local cluster
+func NewLocalVirtualCluster() *VirtualCluster {
 	cluster := newVirtualCluster(nil)
 	cluster.SetName(ClusterLocalName)
 	cluster.Spec.CredentialType = CredentialTypeInternal
 	return cluster
 }
 
-// NewClusterFromSecret extract cluster from cluster secret
-func NewClusterFromSecret(secret *corev1.Secret) (*VirtualCluster, error) {
+// NewVirtualClusterFromSecret extract cluster from cluster secret
+func NewVirtualClusterFromSecret(secret *corev1.Secret) (*VirtualCluster, error) {
 	cluster := newVirtualCluster(secret)
 	cluster.Spec.Endpoint = string(secret.Data["endpoint"])
 	if metav1.HasLabel(secret.ObjectMeta, common.LabelKeyClusterEndpointType) {
@@ -265,13 +352,24 @@ func NewClusterFromSecret(secret *corev1.Secret) (*VirtualCluster, error) {
 	return cluster, nil
 }
 
-// NewClusterFromManagedCluster extract cluster from ocm managed cluster
-func NewClusterFromManagedCluster(managedCluster *ocmclusterv1.ManagedCluster) (*VirtualCluster, error) {
+// NewVirtualClusterFromManagedCluster extract cluster from ocm managed cluster
+func NewVirtualClusterFromManagedCluster(managedCluster *ocmclusterv1.ManagedCluster) (*VirtualCluster, error) {
 	if len(managedCluster.Spec.ManagedClusterClientConfigs) == 0 {
 		return nil, NewInvalidManagedClusterError()
 	}
 	cluster := newVirtualCluster(managedCluster)
-	cluster.Spec.Accepted = managedCluster.Spec.HubAcceptsClient
 	cluster.Spec.CredentialType = CredentialTypeOCMManagedCluster
 	return cluster, nil
+}
+
+// NewVirtualClusterFromObject create virtual cluster from existing object
+func NewVirtualClusterFromObject(obj client.Object) (*VirtualCluster, error) {
+	switch o := obj.(type) {
+	case *corev1.Secret:
+		return NewVirtualClusterFromSecret(o)
+	case *ocmclusterv1.ManagedCluster:
+		return NewVirtualClusterFromManagedCluster(o)
+	default:
+		return nil, fmt.Errorf("unrecognizable object type %T for virtual cluster", o)
+	}
 }

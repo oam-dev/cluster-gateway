@@ -20,12 +20,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/server"
+	genericfilters "k8s.io/apiserver/pkg/server/filters"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 
-	genericfilters "k8s.io/apiserver/pkg/server/filters"
-
 	"github.com/oam-dev/cluster-gateway/pkg/config"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
 	"github.com/oam-dev/cluster-gateway/pkg/util/singleton"
@@ -41,10 +42,9 @@ func main() {
 	// registering metrics
 	metrics.Register()
 
-	cmd, err := builder.APIServer.
+	apiserverBuilder := builder.APIServer.
 		// +kubebuilder:scaffold:resource-register
 		WithResource(&clusterv1alpha1.ClusterGateway{}).
-		WithResource(&clusterv1alpha1.VirtualCluster{}).
 		WithLocalDebugExtension().
 		ExposeLoopbackMasterClientConfig().
 		ExposeLoopbackAuthorizer().
@@ -74,8 +74,13 @@ func main() {
 			server.Handler.FullHandlerChain = clusterv1alpha1.NewClusterGatewayProxyRequestEscaper(server.Handler.FullHandlerChain)
 			return server
 		}).
-		WithPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient).
-		Build()
+		WithPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient)
+
+	if utilfeature.DefaultMutableFeatureGate.Enabled(featuregates.VirtualCluster) {
+		apiserverBuilder = apiserverBuilder.WithResource(&clusterv1alpha1.VirtualCluster{})
+	}
+
+	cmd, err := apiserverBuilder.Build()
 	if err != nil {
 		klog.Fatal(err)
 	}
