@@ -3,16 +3,16 @@ package roundtrip
 import (
 	"context"
 
-	"github.com/oam-dev/cluster-gateway/e2e/framework"
-	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
-	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/oam-dev/cluster-gateway/e2e/framework"
+	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
+	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 )
 
 const (

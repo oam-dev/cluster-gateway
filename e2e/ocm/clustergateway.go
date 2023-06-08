@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
-	"github.com/oam-dev/cluster-gateway/e2e/framework"
-	"github.com/oam-dev/cluster-gateway/pkg/common"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/oam-dev/cluster-gateway/e2e/framework"
+	"github.com/oam-dev/cluster-gateway/pkg/common"
 )
 
 const (
