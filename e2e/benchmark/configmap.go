@@ -2,15 +2,15 @@ package kubernetes
 
 import (
 	"context"
-	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/oam-dev/cluster-gateway/e2e/framework"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
 )
 
 const (

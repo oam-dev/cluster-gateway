@@ -4,11 +4,6 @@ import (
 	"context"
 	"time"
 
-	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
-	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
-	"github.com/oam-dev/cluster-gateway/pkg/common"
-	"github.com/oam-dev/cluster-gateway/pkg/event"
-	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,6 +12,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	multicluster "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/transport"
+	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	"github.com/oam-dev/cluster-gateway/pkg/common"
+	"github.com/oam-dev/cluster-gateway/pkg/event"
+	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned"
 )
 
 var (
@@ -49,7 +50,7 @@ func SetupClusterGatewayHealthProberWithManager(mgr ctrl.Manager) error {
 	ch, handler := event.AddOnHealthResyncHandler(mgr.GetClient(), time.Second)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&addonv1alpha1.ManagedClusterAddOn{}).
-		Watches(ch, handler).
+		WatchesRawSource(ch, handler).
 		Complete(prober)
 }
 

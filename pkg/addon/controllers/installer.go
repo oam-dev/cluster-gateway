@@ -23,16 +23,14 @@ import (
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"k8s.io/utils/pointer"
+	"open-cluster-management.io/addon-framework/pkg/certrotation"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	ocmauthv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"open-cluster-management.io/addon-framework/pkg/certrotation"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	ocmauthv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 	proxyv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/proxy/v1alpha1"
@@ -59,49 +57,21 @@ func SetupClusterGatewayInstallerWithManager(mgr ctrl.Manager, caPair *crypto.CA
 		// Watches ClusterManagementAddOn singleton
 		For(&addonv1alpha1.ClusterManagementAddOn{}).
 		// Watches ClusterGatewayConfiguration singleton
-		Watches(
-			&source.Kind{
-				Type: &proxyv1alpha1.ClusterGatewayConfiguration{},
-			},
-			&event.ClusterGatewayConfigurationHandler{
-				Client: mgr.GetClient(),
-			}).
+		Watches(&proxyv1alpha1.ClusterGatewayConfiguration{},
+			&event.ClusterGatewayConfigurationHandler{Client: mgr.GetClient()}).
 		// Watches ManagedClusterAddon.
-		Watches(
-			&source.Kind{
-				Type: &addonv1alpha1.ManagedClusterAddOn{},
-			},
-			&handler.EnqueueRequestForOwner{
-				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
-			}).
+		Watches(&addonv1alpha1.ManagedClusterAddOn{},
+			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &addonv1alpha1.ClusterManagementAddOn{})).
 		// Cluster-Gateway mTLS certificate should be actively reconciled
-		Watches(
-			&source.Kind{
-				Type: &corev1.Secret{},
-			},
-			&handler.EnqueueRequestForOwner{
-				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
-			}).
+		Watches(&corev1.Secret{},
+			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &addonv1alpha1.ClusterManagementAddOn{})).
 		// Secrets rotated by ManagedServiceAccount should be actively reconciled
-		Watches(
-			&source.Kind{
-				Type: &corev1.Secret{},
-			},
-			&event.SecretHandler{}).
+		Watches(&corev1.Secret{}, &event.SecretHandler{}).
 		// Cluster-gateway apiserver instances should be actively reconciled
-		Watches(
-			&source.Kind{
-				Type: &appsv1.Deployment{},
-			},
-			&handler.EnqueueRequestForOwner{
-				OwnerType: &addonv1alpha1.ClusterManagementAddOn{},
-			}).
+		Watches(&appsv1.Deployment{},
+			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &addonv1alpha1.ClusterManagementAddOn{})).
 		// APIService should be actively reconciled
-		Watches(
-			&source.Kind{
-				Type: &apiregistrationv1.APIService{},
-			},
-			&event.APIServiceHandler{WatchingName: common.ClusterGatewayAPIServiceName}).
+		Watches(&apiregistrationv1.APIService{}, &event.APIServiceHandler{WatchingName: common.ClusterGatewayAPIServiceName}).
 		Complete(installer)
 }
 

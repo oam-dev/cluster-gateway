@@ -1,15 +1,15 @@
 package framework
 
 import (
-	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned"
 )
 
 // unique identifier of the e2e run

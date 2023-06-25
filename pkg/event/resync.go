@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
@@ -14,6 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"github.com/oam-dev/cluster-gateway/pkg/common"
 )
 
 func AddOnHealthResyncHandler(c client.Client, interval time.Duration) (*source.Channel, handler.EventHandler) {
@@ -67,7 +68,7 @@ var _ handler.EventHandler = &AddonHealthHandler{}
 type AddonHealthHandler struct {
 }
 
-func (a AddonHealthHandler) Generic(genericEvent event.GenericEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Generic(_ context.Context, genericEvent event.GenericEvent, limitingInterface workqueue.RateLimitingInterface) {
 	limitingInterface.Add(reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Namespace: genericEvent.Object.GetNamespace(),
@@ -76,14 +77,14 @@ func (a AddonHealthHandler) Generic(genericEvent event.GenericEvent, limitingInt
 	})
 }
 
-func (a AddonHealthHandler) Create(createEvent event.CreateEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Create(_ context.Context, createEvent event.CreateEvent, limitingInterface workqueue.RateLimitingInterface) {
 	panic("implement me") // unreachable
 }
 
-func (a AddonHealthHandler) Update(updateEvent event.UpdateEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Update(_ context.Context, updateEvent event.UpdateEvent, limitingInterface workqueue.RateLimitingInterface) {
 	panic("implement me") // unreachable
 }
 
-func (a AddonHealthHandler) Delete(deleteEvent event.DeleteEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Delete(_ context.Context, deleteEvent event.DeleteEvent, limitingInterface workqueue.RateLimitingInterface) {
 	panic("implement me") // unreachable
 }
