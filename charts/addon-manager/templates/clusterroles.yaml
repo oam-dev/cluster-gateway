@@ -12,6 +12,39 @@ rules:
       - list
       - watch
   - apiGroups:
+      - addon.open-cluster-management.io
+    resources:
+      - clustermanagementaddons
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - addon.open-cluster-management.io
+    resources:
+      - clustermanagementaddons/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - addon.open-cluster-management.io
+    resources:
+      - managedclusteraddons
+    verbs:
+      - "*"
+  - apiGroups:
+      - addon.open-cluster-management.io
+    resources:
+      - managedclusteraddons/status
+    verbs:
+      - update
+      - patch
+  - apiGroups:
+      - addon.open-cluster-management.io
+    resources:
+      - managedclusteraddons/finalizers
+    verbs:
+      - update
+  - apiGroups:
       - authentication.open-cluster-management.io
     resources:
       - managedserviceaccounts
@@ -21,6 +54,7 @@ rules:
       - proxy.open-cluster-management.io
     resources:
       - clustergatewayconfigurations
+      - managedproxyconfigurations/finalizers # need this when copying secret from cluster-proxy.
     verbs:
       - "*"
   - apiGroups:
@@ -53,20 +87,6 @@ rules:
       - manifestworks
     verbs:
       - "*"
-  - apiGroups:
-      - addon.open-cluster-management.io
-    resources:
-      - clustermanagementaddons
-      - managedclusteraddons
-      - clustermanagementaddons/status
-      - managedclusteraddons/status
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
   - apiGroups:
       - certificates.k8s.io
     resources:
