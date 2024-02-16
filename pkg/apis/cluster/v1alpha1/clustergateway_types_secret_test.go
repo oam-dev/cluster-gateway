@@ -27,13 +27,29 @@ import (
 )
 
 var (
-	testNamespace = "foo"
-	testName      = "bar"
-	testCAData    = "caData"
-	testCertData  = "certData"
-	testKeyData   = "keyData"
-	testToken     = "token"
-	testEndpoint  = "https://localhost:443"
+	testNamespace          = "foo"
+	testName               = "bar"
+	testCAData             = "caData"
+	testCertData           = "certData"
+	testKeyData            = "keyData"
+	testToken              = "token"
+	testEndpoint           = "https://localhost:443"
+	testExecConfigForToken = `{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecConfig",
+  "command": "echo",
+  "args": [
+    "{\"apiVersion\": \"client.authentication.k8s.io/v1beta1\", \"kind\": \"ExecCredential\", \"status\": {\"token\": \"token\"}}"
+  ]
+}`
+	testExecConfigForX509 = `{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecConfig",
+  "command": "echo",
+  "args": [
+    "{\"apiVersion\": \"client.authentication.k8s.io/v1beta1\", \"kind\": \"ExecCredential\", \"status\": {\"clientCertificateData\": \"certData\", \"clientKeyData\": \"keyData\"}}"
+  ]
+}`
 )
 
 func TestConvertSecretToGateway(t *testing.T) {
@@ -257,6 +273,83 @@ func TestConvertSecretToGateway(t *testing.T) {
 				Status: ClusterGatewayStatus{
 					Healthy:       true,
 					HealthyReason: "MyReason",
+				},
+			},
+		},
+		{
+			name: "service account token issued from external command",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						common.LabelKeyClusterCredentialType: string(CredentialTypePodIdentity),
+					},
+				},
+				Data: map[string][]byte{
+					"endpoint": []byte(testEndpoint),
+					"ca.crt":   []byte(testCAData),
+					"exec":     []byte(testExecConfigForToken),
+				},
+			},
+			expected: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testName,
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Credential: &ClusterAccessCredential{
+							Type:                CredentialTypeServiceAccountToken,
+							ServiceAccountToken: testToken,
+						},
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								CABundle: []byte(testCAData),
+								Address:  testEndpoint,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "x509 cert-key pair issued from external command",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						common.LabelKeyClusterCredentialType: string(CredentialTypePodIdentity),
+					},
+				},
+				Data: map[string][]byte{
+					"endpoint": []byte(testEndpoint),
+					"ca.crt":   []byte(testCAData),
+					"exec":     []byte(testExecConfigForX509),
+				},
+			},
+			expected: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testName,
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Credential: &ClusterAccessCredential{
+							Type: CredentialTypeX509Certificate,
+							X509: &X509{
+								Certificate: []byte(testCertData),
+								PrivateKey:  []byte(testKeyData),
+							},
+						},
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								CABundle: []byte(testCAData),
+								Address:  testEndpoint,
+							},
+						},
+					},
 				},
 			},
 		},

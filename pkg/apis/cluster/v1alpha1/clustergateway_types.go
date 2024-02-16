@@ -79,6 +79,8 @@ const (
 	// CredentialTypeX509Certificate means the cluster is accessible via
 	// X509 certificate and key.
 	CredentialTypeX509Certificate CredentialType = "X509Certificate"
+	// CredentialTypeDynamicServiceAccountToken ...
+	CredentialTypePodIdentity CredentialType = "PodIdentity"
 )
 
 type ClusterEndpointType string
