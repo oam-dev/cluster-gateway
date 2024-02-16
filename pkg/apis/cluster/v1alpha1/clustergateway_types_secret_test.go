@@ -617,3 +617,180 @@ func TestListHybridClusterGateway(t *testing.T) {
 	}
 	assert.Equal(t, expectedNames, actualNames)
 }
+
+func TestBuildCredentialFromExecConfig(t *testing.T) {
+	cases := []struct {
+		name          string
+		secret        func(s *corev1.Secret) *corev1.Secret
+		cluster       func(ce *ClusterEndpoint) *ClusterEndpoint
+		expectedError string
+		expected      *ClusterAccessCredential
+	}{
+		{
+			name:          "missing exec config",
+			expectedError: "missing secret data key: exec",
+		},
+
+		{
+			name: "invalid exec config format",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte("some invalid exec config")
+				return s
+			},
+			expectedError: "failed to decode exec config JSON from secret data: invalid character 's' looking for beginning of value",
+		},
+
+		{
+			name: "missing command property within exec config",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{}`)
+				return s
+			},
+			expectedError: "missing command key in ExecConfig object",
+		},
+
+		{
+			name: "failed to run external command: command not found",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"command": "/path/to/command/not/found"}`)
+				return s
+			},
+			expectedError: "exec: executable /path/to/command/not/found not found",
+		},
+
+		{
+			name: "failed to run external command: finished with non-zero exit code",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"command": "false"}`)
+				return s
+			},
+			expectedError: "exec: executable /usr/bin/false failed with exit code 1",
+		},
+
+		{
+			name: "missing API version in exec config",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"command": "true"}`)
+				return s
+			},
+			expectedError: "exec plugin: invalid apiVersion \"\"",
+		},
+
+		{
+			name: "invalid API version in exec config",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "example.org/v1", "command": "true"}`)
+				return s
+			},
+			expectedError: "exec plugin: invalid apiVersion \"example.org/v1\"",
+		},
+
+		{
+			name: "invalid external command output",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["invalid output"]}`)
+				return s
+			},
+			expectedError: "decoding stdout: couldn't get version/kind; json parse error: json: cannot unmarshal string into Go value of type struct { APIVersion string \"json:\\\"apiVersion,omitempty\\\"\"; Kind string \"json:\\\"kind,omitempty\\\"\" }",
+		},
+
+		{
+			name: "API version mismatch between exec config and command output",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1beta1\"}"]}`)
+				return s
+			},
+			expectedError: "exec plugin is configured to use API version client.authentication.k8s.io/v1, plugin returned version client.authentication.k8s.io/v1beta1",
+		},
+
+		{
+			name: "missing status property on external command output",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1\"}"]}`)
+				return s
+			},
+			expectedError: "exec plugin didn't return a status field",
+		},
+
+		{
+			name: "missing any auth credential on status",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1\", \"status\": {}}"]}`)
+				return s
+			},
+			expectedError: "exec plugin didn't return a token or cert/key pair",
+		},
+
+		{
+			name: "has cert but no private key",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1\", \"status\": {\"clientCertificateData\": \"certData\"}}"]}`)
+				return s
+			},
+			expectedError: "exec plugin returned only certificate or key, not both",
+		},
+
+		{
+			name: "returns successfully a service account token",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1\", \"status\": {\"token\": \"token\"}}"]}`)
+				return s
+			},
+			expected: &ClusterAccessCredential{
+				Type:                CredentialTypeServiceAccountToken,
+				ServiceAccountToken: testToken,
+			},
+		},
+
+		{
+			name: "returns successfully a X509 client certificate",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1\", \"status\": {\"clientCertificateData\": \"certData\", \"clientKeyData\": \"keyData\"}}"]}`)
+				return s
+			},
+			expected: &ClusterAccessCredential{
+				Type: CredentialTypeX509Certificate,
+				X509: &X509{
+					Certificate: []byte(testCertData),
+					PrivateKey:  []byte(testKeyData),
+				},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{},
+			}
+			if tt.secret != nil {
+				secret = tt.secret(secret)
+			}
+
+			cluster := &ClusterEndpoint{
+				Type: ClusterEndpointTypeConst,
+				Const: &ClusterEndpointConst{
+					Address:  testEndpoint,
+					CABundle: []byte(testCAData),
+				},
+			}
+			if tt.cluster != nil {
+				cluster = tt.cluster(cluster)
+			}
+
+			got, err := buildCredentialFromExecConfig(secret, cluster)
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}

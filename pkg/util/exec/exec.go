@@ -2,6 +2,7 @@ package exec
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -34,7 +35,16 @@ func init() {
 }
 
 func GetToken(ec *clientcmdapi.ExecConfig, cluster *clientauthentication.Cluster) (*clientauthentication.ExecCredential, error) {
-	cmd := exec.Command(ec.Command, ec.Args...)
+	if ec.Command == "" {
+		return nil, errors.New("missing command key in ExecConfig object")
+	}
+
+	command, err := exec.LookPath(ec.Command)
+	if err != nil {
+		return nil, unwrapExecCommandError(ec.Command, err)
+	}
+
+	cmd := exec.Command(command, ec.Args...)
 	cmd.Env = os.Environ()
 
 	for _, env := range ec.Env {
@@ -46,7 +56,7 @@ func GetToken(ec *clientcmdapi.ExecConfig, cluster *clientauthentication.Cluster
 	cmd.Stdout = &stdout
 
 	if err := cmd.Run(); err != nil {
-		return nil, wrapCmdRunErrorLocked(cmd, err)
+		return nil, unwrapExecCommandError(command, err)
 	}
 
 	ecgv, err := schema.ParseGroupVersion(ec.APIVersion)
@@ -94,14 +104,14 @@ func GetToken(ec *clientcmdapi.ExecConfig, cluster *clientauthentication.Cluster
 	return cred, nil
 }
 
-func wrapCmdRunErrorLocked(cmd *exec.Cmd, err error) error {
+func unwrapExecCommandError(path string, err error) error {
 	switch err.(type) {
 	case *exec.Error: // Binary does not exist (see exec.Error).
-		return fmt.Errorf("exec: executable %s not found", cmd.Path)
+		return fmt.Errorf("exec: executable %s not found", path)
 
 	case *exec.ExitError: // Binary execution failed (see exec.Cmd.Run()).
 		e := err.(*exec.ExitError)
-		return fmt.Errorf("exec: executable %s failed with exit code %d", cmd.Path, e.ProcessState.ExitCode())
+		return fmt.Errorf("exec: executable %s failed with exit code %d", path, e.ProcessState.ExitCode())
 
 	default:
 		return fmt.Errorf("exec: %v", err)

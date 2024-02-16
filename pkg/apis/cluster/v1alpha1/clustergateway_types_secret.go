@@ -301,7 +301,7 @@ func buildCredentialFromExecConfig(secret *v1.Secret, ep *ClusterEndpoint) (*Clu
 
 	var ec clientcmdapi.ExecConfig
 	if err := json.Unmarshal(execConfigRaw, &ec); err != nil {
-		return nil, fmt.Errorf("failed to decode exec config from secret data: %v", err)
+		return nil, fmt.Errorf("failed to decode exec config JSON from secret data: %v", err)
 	}
 
 	cluster := &clientauthentication.Cluster{
