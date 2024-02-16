@@ -253,7 +253,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 			ServiceAccountToken: string(secret.Data[v1.ServiceAccountTokenKey]),
 		}
 
-	case CredentialTypePodIdentity:
+	case CredentialTypeDynamic:
 		credential, err := buildCredentialFromExecConfig(secret, c.Spec.Access.Endpoint)
 		if err != nil {
 			return nil, fmt.Errorf("failed to issue credential from external command: %s", err)

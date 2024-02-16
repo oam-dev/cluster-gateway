@@ -277,13 +277,13 @@ func TestConvertSecretToGateway(t *testing.T) {
 			},
 		},
 		{
-			name: "service account token issued from external command",
+			name: "dynamic service account token issued from external command",
 			inputSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testName,
 					Namespace: testNamespace,
 					Labels: map[string]string{
-						common.LabelKeyClusterCredentialType: string(CredentialTypePodIdentity),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeDynamic),
 					},
 				},
 				Data: map[string][]byte{
@@ -314,13 +314,13 @@ func TestConvertSecretToGateway(t *testing.T) {
 			},
 		},
 		{
-			name: "x509 cert-key pair issued from external command",
+			name: "dynamic x509 cert-key pair issued from external command",
 			inputSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testName,
 					Namespace: testNamespace,
 					Labels: map[string]string{
-						common.LabelKeyClusterCredentialType: string(CredentialTypePodIdentity),
+						common.LabelKeyClusterCredentialType: string(CredentialTypeDynamic),
 					},
 				},
 				Data: map[string][]byte{
