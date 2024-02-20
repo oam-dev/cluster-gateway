@@ -353,6 +353,24 @@ func TestConvertSecretToGateway(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "failed to fetch cluster credential from dynamic auth mode",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						common.LabelKeyClusterCredentialType: string(CredentialTypeDynamic),
+					},
+				},
+				Data: map[string][]byte{
+					"endpoint": []byte(testEndpoint),
+					"ca.crt":   []byte(testCAData),
+					"exec":     []byte("invalid exec config format"),
+				},
+			},
+			expectedFailure: true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
