@@ -94,8 +94,19 @@ func NewConfigFromCluster(ctx context.Context, c *ClusterGateway) (*restclient.C
 	}
 	// setting up credentials
 	switch c.Spec.Access.Credential.Type {
+	case CredentialTypeDynamic:
+		if token := c.Spec.Access.Credential.ServiceAccountToken; token != "" {
+			cfg.BearerToken = token
+		}
+
+		if c.Spec.Access.Credential.X509 != nil && len(c.Spec.Access.Credential.X509.Certificate) > 0 && len(c.Spec.Access.Credential.X509.PrivateKey) > 0 {
+			cfg.CertData = c.Spec.Access.Credential.X509.Certificate
+			cfg.KeyData = c.Spec.Access.Credential.X509.PrivateKey
+		}
+
 	case CredentialTypeServiceAccountToken:
 		cfg.BearerToken = c.Spec.Access.Credential.ServiceAccountToken
+
 	case CredentialTypeX509Certificate:
 		cfg.CertData = c.Spec.Access.Credential.X509.Certificate
 		cfg.KeyData = c.Spec.Access.Credential.X509.PrivateKey

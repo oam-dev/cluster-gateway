@@ -318,14 +318,14 @@ func buildCredentialFromExecConfig(secret *v1.Secret, ep *ClusterEndpoint) (*Clu
 
 	if token := cred.Status.Token; len(token) > 0 {
 		return &ClusterAccessCredential{
-			Type:                CredentialTypeServiceAccountToken,
+			Type:                CredentialTypeDynamic,
 			ServiceAccountToken: token,
 		}, nil
 	}
 
 	if cert, key := cred.Status.ClientCertificateData, cred.Status.ClientKeyData; len(cert) > 0 && len(key) > 0 {
 		return &ClusterAccessCredential{
-			Type: CredentialTypeX509Certificate,
+			Type: CredentialTypeDynamic,
 			X509: &X509{
 				Certificate: []byte(cert),
 				PrivateKey:  []byte(key),

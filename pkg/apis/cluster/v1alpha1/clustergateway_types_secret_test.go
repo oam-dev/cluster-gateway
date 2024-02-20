@@ -299,7 +299,7 @@ func TestConvertSecretToGateway(t *testing.T) {
 				Spec: ClusterGatewaySpec{
 					Access: ClusterAccess{
 						Credential: &ClusterAccessCredential{
-							Type:                CredentialTypeServiceAccountToken,
+							Type:                CredentialTypeDynamic,
 							ServiceAccountToken: testToken,
 						},
 						Endpoint: &ClusterEndpoint{
@@ -336,7 +336,7 @@ func TestConvertSecretToGateway(t *testing.T) {
 				Spec: ClusterGatewaySpec{
 					Access: ClusterAccess{
 						Credential: &ClusterAccessCredential{
-							Type: CredentialTypeX509Certificate,
+							Type: CredentialTypeDynamic,
 							X509: &X509{
 								Certificate: []byte(testCertData),
 								PrivateKey:  []byte(testKeyData),
@@ -755,7 +755,7 @@ func TestBuildCredentialFromExecConfig(t *testing.T) {
 				return s
 			},
 			expected: &ClusterAccessCredential{
-				Type:                CredentialTypeServiceAccountToken,
+				Type:                CredentialTypeDynamic,
 				ServiceAccountToken: testToken,
 			},
 		},
@@ -767,7 +767,7 @@ func TestBuildCredentialFromExecConfig(t *testing.T) {
 				return s
 			},
 			expected: &ClusterAccessCredential{
-				Type: CredentialTypeX509Certificate,
+				Type: CredentialTypeDynamic,
 				X509: &X509{
 					Certificate: []byte(testCertData),
 					PrivateKey:  []byte(testKeyData),
