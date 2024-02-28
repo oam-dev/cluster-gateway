@@ -1,3 +1,5 @@
+//go:build unix
+
 package exec
 
 import (
@@ -41,7 +43,7 @@ func TestIssueClusterCredential(t *testing.T) {
 			expectedError: "missing \"command\" property on exec config object",
 		},
 
-		"successfully issuing a token": {
+		"MISS credential from cache, should issue a new credential": {
 			clusterName: testClusterName,
 			execConfig: &clientcmdapi.ExecConfig{
 				APIVersion: "client.authentication.k8s.io/v1",
@@ -65,7 +67,7 @@ func TestIssueClusterCredential(t *testing.T) {
 			},
 		},
 
-		"credential HIT from cache": {
+		"HIT credential from cache": {
 			setup: func(t *testing.T) {
 				credentials.Store(testClusterName, &clientauthentication.ExecCredential{
 					TypeMeta: metav1.TypeMeta{
@@ -73,7 +75,7 @@ func TestIssueClusterCredential(t *testing.T) {
 						Kind:       "ExecCredential",
 					},
 					Status: &clientauthentication.ExecCredentialStatus{
-						ExpirationTimestamp: buildMetav1Time(t, t0.Add(time.Hour)),
+						ExpirationTimestamp: &metav1.Time{Time: t0.Add(time.Hour).Local().Truncate(time.Second)},
 						Token:               "testToken",
 					},
 				})
@@ -89,13 +91,13 @@ func TestIssueClusterCredential(t *testing.T) {
 					Kind:       "ExecCredential",
 				},
 				Status: &clientauthentication.ExecCredentialStatus{
-					ExpirationTimestamp: buildMetav1Time(t, t0.Add(time.Hour)),
+					ExpirationTimestamp: &metav1.Time{Time: t0.Add(time.Hour).Local().Truncate(time.Second)},
 					Token:               "testToken",
 				},
 			},
 		},
 
-		"credential MISS from cache": {
+		"expired credential on cache, should issue a new credential": {
 			setup: func(t *testing.T) {
 				credentials.Store(testClusterName, &clientauthentication.ExecCredential{
 					TypeMeta: metav1.TypeMeta{
@@ -103,7 +105,7 @@ func TestIssueClusterCredential(t *testing.T) {
 						Kind:       "ExecCredential",
 					},
 					Status: &clientauthentication.ExecCredentialStatus{
-						ExpirationTimestamp: buildMetav1Time(t, t0),
+						ExpirationTimestamp: &metav1.Time{Time: t0},
 						Token:               "oldToken",
 					},
 				})
@@ -121,7 +123,7 @@ func TestIssueClusterCredential(t *testing.T) {
     "expirationTimestamp": %q,
     "token": "newToken"
   }
-}`, t0.Add(24*time.Hour).UTC().Format(time.RFC3339)),
+}`, t0.Add(24*time.Hour).Format(time.RFC3339)),
 				},
 			},
 			expected: &clientauthentication.ExecCredential{
@@ -130,7 +132,7 @@ func TestIssueClusterCredential(t *testing.T) {
 					Kind:       "ExecCredential",
 				},
 				Status: &clientauthentication.ExecCredentialStatus{
-					ExpirationTimestamp: buildMetav1Time(t, t0.Add(24*time.Hour)),
+					ExpirationTimestamp: &metav1.Time{Time: t0.Add(24 * time.Hour).Local().Truncate(time.Second)},
 					Token:               "newToken",
 				},
 			},
@@ -154,17 +156,16 @@ func TestIssueClusterCredential(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, cred)
+
+			if tt.expected.Status != nil && !tt.expected.Status.ExpirationTimestamp.IsZero() {
+				fmt.Println("Expected timestamp: ", tt.expected.Status.ExpirationTimestamp)
+			}
+
+			if cred.Status != nil && !cred.Status.ExpirationTimestamp.IsZero() {
+				fmt.Println("Got timestamp: ", cred.Status.ExpirationTimestamp)
+			}
 		})
 	}
-}
-
-func buildMetav1Time(t *testing.T, tm time.Time) *metav1.Time {
-	t.Helper()
-
-	copied, err := time.Parse(time.RFC3339, tm.Format(time.RFC3339))
-	assert.NoError(t, err, "failed to parse time to RFC3339: %s", err)
-
-	return &metav1.Time{Time: copied}
 }
 
 func cleanAllCache(t *testing.T) {

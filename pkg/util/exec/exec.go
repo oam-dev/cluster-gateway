@@ -57,7 +57,7 @@ func IssueClusterCredential(name string, ec *clientcmdapi.ExecConfig) (*clientau
 			return IssueClusterCredential(name, ec) // credential expired, calling function again
 		}
 
-		return cred, nil
+		return cred, nil // credential on cache still valid
 	}
 
 	cred, err := issueClusterCredential(ec)
