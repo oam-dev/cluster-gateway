@@ -664,7 +664,7 @@ func TestBuildCredentialFromExecConfig(t *testing.T) {
 				s.Data["exec"] = []byte(`{}`)
 				return s
 			},
-			expectedError: "missing command key in ExecConfig object",
+			expectedError: "missing \"command\" property on exec config object",
 		},
 
 		{
@@ -789,18 +789,7 @@ func TestBuildCredentialFromExecConfig(t *testing.T) {
 				secret = tt.secret(secret)
 			}
 
-			cluster := &ClusterEndpoint{
-				Type: ClusterEndpointTypeConst,
-				Const: &ClusterEndpointConst{
-					Address:  testEndpoint,
-					CABundle: []byte(testCAData),
-				},
-			}
-			if tt.cluster != nil {
-				cluster = tt.cluster(cluster)
-			}
-
-			got, err := buildCredentialFromExecConfig(secret, cluster)
+			got, err := buildCredentialFromExecConfig(secret)
 			if tt.expectedError != "" {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tt.expectedError)

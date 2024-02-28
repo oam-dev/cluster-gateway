@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,15 +30,55 @@ var (
 		clientauthenticationv1beta1.SchemeGroupVersion.String(): clientauthenticationv1beta1.SchemeGroupVersion,
 		clientauthenticationv1.SchemeGroupVersion.String():      clientauthenticationv1.SchemeGroupVersion,
 	}
+
+	credentials sync.Map
 )
 
 func init() {
 	install.Install(scheme)
 }
 
-func GetToken(ec *clientcmdapi.ExecConfig, cluster *clientauthentication.Cluster) (*clientauthentication.ExecCredential, error) {
+func IssueClusterCredential(name string, ec *clientcmdapi.ExecConfig) (*clientauthentication.ExecCredential, error) {
+	if name == "" {
+		return nil, errors.New("cluster name not provided")
+	}
+
+	value, found := credentials.Load(name)
+	if found {
+		cred, ok := value.(*clientauthentication.ExecCredential)
+		if !ok {
+			return nil, errors.New("failed to convert item in cache to ExecCredential")
+		}
+
+		now := &metav1.Time{Time: time.Now().Add(time.Minute)} // expires a minute early
+
+		if cred.Status != nil && cred.Status.ExpirationTimestamp.Before(now) {
+			credentials.Delete(name)
+			return IssueClusterCredential(name, ec) // credential expired, calling function again
+		}
+
+		return cred, nil
+	}
+
+	cred, err := issueClusterCredential(ec)
+	if err != nil {
+		return nil, err
+	}
+
+	if cred.Status != nil && !cred.Status.ExpirationTimestamp.IsZero() {
+		credentials.Store(name, cred) // storing credential in cache
+	}
+
+	return cred, nil
+}
+
+func issueClusterCredential(ec *clientcmdapi.ExecConfig) (*clientauthentication.ExecCredential, error) {
+	if ec == nil {
+		return nil, errors.New("exec config not provided")
+	}
+
 	if ec.Command == "" {
-		return nil, errors.New("missing command key in ExecConfig object")
+		return nil, errors.New("missing \"command\" property on exec config object")
 	}
 
 	command, err := exec.LookPath(ec.Command)
@@ -69,10 +111,7 @@ func GetToken(ec *clientcmdapi.ExecConfig, cluster *clientauthentication.Cluster
 			APIVersion: ec.APIVersion,
 			Kind:       "ExecCredential",
 		},
-		Spec: clientauthentication.ExecCredentialSpec{
-			Interactive: false,
-			Cluster:     cluster,
-		},
+		Spec: clientauthentication.ExecCredentialSpec{},
 	}
 
 	gv, ok := apiVersions[ec.APIVersion]

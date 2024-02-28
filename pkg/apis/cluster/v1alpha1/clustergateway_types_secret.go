@@ -9,7 +9,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/client-go/pkg/apis/clientauthentication"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/pointer"
 
@@ -254,7 +253,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 		}
 
 	case CredentialTypeDynamic:
-		credential, err := buildCredentialFromExecConfig(secret, c.Spec.Access.Endpoint)
+		credential, err := buildCredentialFromExecConfig(secret)
 		if err != nil {
 			return nil, fmt.Errorf("failed to issue credential from external command: %s", err)
 		}
@@ -293,7 +292,7 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	return c, nil
 }
 
-func buildCredentialFromExecConfig(secret *v1.Secret, ep *ClusterEndpoint) (*ClusterAccessCredential, error) {
+func buildCredentialFromExecConfig(secret *v1.Secret) (*ClusterAccessCredential, error) {
 	execConfigRaw := secret.Data["exec"]
 	if len(execConfigRaw) == 0 {
 		return nil, errors.New("missing secret data key: exec")
@@ -304,14 +303,7 @@ func buildCredentialFromExecConfig(secret *v1.Secret, ep *ClusterEndpoint) (*Clu
 		return nil, fmt.Errorf("failed to decode exec config JSON from secret data: %v", err)
 	}
 
-	cluster := &clientauthentication.Cluster{
-		Server:                   ep.Const.Address,
-		CertificateAuthorityData: ep.Const.CABundle,
-		InsecureSkipTLSVerify:    pointer.BoolDeref(ep.Const.Insecure, false),
-		ProxyURL:                 pointer.StringDeref(ep.Const.ProxyURL, ""),
-	}
-
-	cred, err := exec.GetToken(&ec, cluster)
+	cred, err := exec.IssueClusterCredential(secret.Name, &ec)
 	if err != nil {
 		return nil, err
 	}
