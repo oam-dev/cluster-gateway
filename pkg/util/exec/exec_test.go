@@ -37,17 +37,122 @@ func TestIssueClusterCredential(t *testing.T) {
 			expectedError: "exec config not provided",
 		},
 
-		"missing command on exec config": {
+		"missing command property within exec config": {
 			clusterName:   testClusterName,
 			execConfig:    &clientcmdapi.ExecConfig{},
 			expectedError: "missing \"command\" property on exec config object",
+		},
+
+		"failed to run external command: command not found": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				Command: "/path/to/command/not/found",
+			},
+			expectedError: "exec: executable /path/to/command/not/found not found",
+		},
+
+		"failed to run external command: finished with non-zero exit code": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Command:    "false",
+			},
+			expectedError: "exec: executable /usr/bin/false failed with exit code 1",
+		},
+
+		"missing API version in exec config": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				Command: "true",
+			},
+			expectedError: `exec plugin: invalid apiVersion ""`,
+		},
+
+		"invalid API version in exec config": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "example.org/v1",
+				Command:    "true",
+			},
+			expectedError: `exec plugin: invalid apiVersion "example.org/v1"`,
+		},
+
+		"invalid exec credential JSON": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Command:    "echo",
+				Args:       []string{"-n", `[]`},
+			},
+			expectedError: "decoding stdout: couldn't get version/kind; json parse error: json: cannot unmarshal array into Go value of type struct { APIVersion string \"json:\\\"apiVersion,omitempty\\\"\"; Kind string \"json:\\\"kind,omitempty\\\"\" }",
+		},
+
+		"API version mismatch": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Command:    "echo",
+				Args: []string{"-n", `{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecCredential",
+  "status": {
+    "token": "testToken"
+  }
+}`},
+			},
+			expectedError: "exec plugin is configured to use API version client.authentication.k8s.io/v1, plugin returned version client.authentication.k8s.io/v1beta1",
+		},
+
+		"missing status property on external command output": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Command:    "echo",
+				Args:       []string{"-n", `{"apiVersion": "client.authentication.k8s.io/v1", "kind": "ExecCredential"}`},
+			},
+			expectedError: "exec plugin didn't return a status field",
+		},
+
+		"missing any auth credential on status": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Command:    "echo",
+				Args:       []string{"-n", `{"apiVersion": "client.authentication.k8s.io/v1", "kind": "ExecCredential", "status": {}}`},
+			},
+			expectedError: "exec plugin didn't return a token or cert/key pair",
+		},
+
+		"has cert but no private key": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Command:    "echo",
+				Args:       []string{"-n", `{"apiVersion": "client.authentication.k8s.io/v1", "kind": "ExecCredential", "status": {"clientCertificateData": "certData"}}`},
+			},
+			expectedError: "exec plugin returned only certificate or key, not both",
+		},
+
+		"invalid exec credential item on cache": {
+			setup: func(t *testing.T) {
+				credentials.Store(testClusterName, "invalid exec credential")
+			},
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Command:    "should_be_ignored",
+			},
+			expectedError: "failed to convert item in cache to ExecCredential",
 		},
 
 		"MISS credential from cache, should issue a new credential": {
 			clusterName: testClusterName,
 			execConfig: &clientcmdapi.ExecConfig{
 				APIVersion: "client.authentication.k8s.io/v1",
-				Command:    "echo",
+				Env: []clientcmdapi.ExecEnvVar{
+					{Name: "TOKEN", Value: "testToken"},
+				},
+				Command: "echo",
 				Args: []string{"-n", `{
   "apiVersion": "client.authentication.k8s.io/v1",
   "kind": "ExecCredential",
@@ -156,14 +261,6 @@ func TestIssueClusterCredential(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, cred)
-
-			if tt.expected.Status != nil && !tt.expected.Status.ExpirationTimestamp.IsZero() {
-				fmt.Println("Expected timestamp: ", tt.expected.Status.ExpirationTimestamp)
-			}
-
-			if cred.Status != nil && !cred.Status.ExpirationTimestamp.IsZero() {
-				fmt.Println("Got timestamp: ", cred.Status.ExpirationTimestamp)
-			}
 		})
 	}
 }
