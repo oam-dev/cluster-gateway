@@ -87,6 +87,15 @@ func TestIssueClusterCredential(t *testing.T) {
 			expectedError: "decoding stdout: couldn't get version/kind; json parse error: json: cannot unmarshal array into Go value of type struct { APIVersion string \"json:\\\"apiVersion,omitempty\\\"\"; Kind string \"json:\\\"kind,omitempty\\\"\" }",
 		},
 
+		"cannot parse de API version": {
+			clusterName: testClusterName,
+			execConfig: &clientcmdapi.ExecConfig{
+				APIVersion: "a/b/c/d/e",
+				Command:    "true",
+			},
+			expectedError: "failed to parse exec config API version: unexpected GroupVersion string: a/b/c/d/e",
+		},
+
 		"API version mismatch": {
 			clusterName: testClusterName,
 			execConfig: &clientcmdapi.ExecConfig{
