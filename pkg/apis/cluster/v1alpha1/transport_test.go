@@ -215,6 +215,74 @@ func TestClusterRestConfigConversion(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "dynamic credential: service account token",
+			clusterGateway: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "my-cluster",
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								Address:  "https://k8s.example.com",
+								CABundle: testCAData,
+							},
+						},
+						Credential: &ClusterAccessCredential{
+							Type:                CredentialTypeDynamic,
+							ServiceAccountToken: testToken,
+						},
+					},
+				},
+			},
+			expectedCfg: &rest.Config{
+				Host:        "https://k8s.example.com",
+				Timeout:     40 * time.Second,
+				BearerToken: testToken,
+				TLSClientConfig: rest.TLSClientConfig{
+					ServerName: "k8s.example.com",
+					CAData:     testCAData,
+				},
+			},
+		},
+		{
+			name: "dynamic credential: certificate + private key",
+			clusterGateway: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "my-cluster",
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								Address:  "https://k8s.example.com",
+								CABundle: testCAData,
+							},
+						},
+						Credential: &ClusterAccessCredential{
+							Type: CredentialTypeDynamic,
+							X509: &X509{
+								Certificate: testCertData,
+								PrivateKey:  testKeyData,
+							},
+						},
+					},
+				},
+			},
+			expectedCfg: &rest.Config{
+				Host:    "https://k8s.example.com",
+				Timeout: 40 * time.Second,
+				TLSClientConfig: rest.TLSClientConfig{
+					ServerName: "k8s.example.com",
+					CertData:   testCertData,
+					KeyData:    testKeyData,
+					CAData:     testCAData,
+				},
+			},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

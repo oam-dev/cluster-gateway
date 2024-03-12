@@ -2,17 +2,21 @@ package v1alpha1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apiserver/pkg/registry/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/pointer"
 
 	"github.com/oam-dev/cluster-gateway/pkg/common"
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/options"
+	"github.com/oam-dev/cluster-gateway/pkg/util/exec"
 	"github.com/oam-dev/cluster-gateway/pkg/util/singleton"
 
 	"github.com/pkg/errors"
@@ -22,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apiserver/pkg/registry/rest"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -176,11 +179,11 @@ func getEndpointFromSecret(secret *v1.Secret) ([]byte, string, error) {
 func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.Secret) (*ClusterGateway, error) {
 	c := &ClusterGateway{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: secret.Name,
+			Name:              secret.Name,
+			CreationTimestamp: secret.CreationTimestamp,
 		},
 		Spec: ClusterGatewaySpec{
-			Provider: "",
-			Access:   ClusterAccess{},
+			Access: ClusterAccess{},
 		},
 	}
 
@@ -242,11 +245,21 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 				PrivateKey:  secret.Data[v1.TLSPrivateKeyKey],
 			},
 		}
+
 	case CredentialTypeServiceAccountToken:
 		c.Spec.Access.Credential = &ClusterAccessCredential{
 			Type:                CredentialTypeServiceAccountToken,
 			ServiceAccountToken: string(secret.Data[v1.ServiceAccountTokenKey]),
 		}
+
+	case CredentialTypeDynamic:
+		credential, err := buildCredentialFromExecConfig(secret)
+		if err != nil {
+			return nil, fmt.Errorf("failed to issue credential from external command: %s", err)
+		}
+
+		c.Spec.Access.Credential = credential
+
 	default:
 		return nil, fmt.Errorf("unrecognized secret credential type %v", credentialType)
 	}
@@ -277,4 +290,41 @@ func convert(caData []byte, apiServerEndpoint string, insecure bool, secret *v1.
 	}
 
 	return c, nil
+}
+
+func buildCredentialFromExecConfig(secret *v1.Secret) (*ClusterAccessCredential, error) {
+	execConfigRaw := secret.Data["exec"]
+	if len(execConfigRaw) == 0 {
+		return nil, errors.New("missing secret data key: exec")
+	}
+
+	var ec clientcmdapi.ExecConfig
+	if err := json.Unmarshal(execConfigRaw, &ec); err != nil {
+		return nil, fmt.Errorf("failed to decode exec config JSON from secret data: %v", err)
+	}
+
+	cred, err := exec.IssueClusterCredential(secret.Name, &ec)
+	if err != nil {
+		return nil, err
+	}
+
+	if token := cred.Status.Token; len(token) > 0 {
+		return &ClusterAccessCredential{
+			Type:                CredentialTypeDynamic,
+			ServiceAccountToken: token,
+		}, nil
+	}
+
+	if cert, key := cred.Status.ClientCertificateData, cred.Status.ClientKeyData; len(cert) > 0 && len(key) > 0 {
+		return &ClusterAccessCredential{
+			Type: CredentialTypeDynamic,
+			X509: &X509{
+				Certificate: []byte(cert),
+				PrivateKey:  []byte(key),
+			},
+		}, nil
+
+	}
+
+	return nil, fmt.Errorf("no credential type available")
 }

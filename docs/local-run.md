@@ -167,6 +167,21 @@ data:
   token: "..." # working jwt token
 ```
 
+2.3. (Alternatively) Create a secret containing an exec config to dynamically fetch the cluster credential from an external command:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: managed1
+  labels:
+    cluster.core.oam.dev/cluster-credential-type: Dynamic
+type: Opaque # <--- Has to be opaque
+data:
+  endpoint: "..." # ditto
+  exec: "..." # an exec config in JSON format; see ExecConfig (https://github.com/kubernetes/kubernetes/blob/2016fab3085562b4132e6d3774b6ded5ba9939fd/staging/src/k8s.io/client-go/tools/clientcmd/api/types.go#L206, https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuration)
+```
+
 3. Proxy to cluster `managed1`'s `/healthz` endpoint
 
 ```shell

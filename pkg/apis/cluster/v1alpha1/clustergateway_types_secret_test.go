@@ -27,13 +27,29 @@ import (
 )
 
 var (
-	testNamespace = "foo"
-	testName      = "bar"
-	testCAData    = "caData"
-	testCertData  = "certData"
-	testKeyData   = "keyData"
-	testToken     = "token"
-	testEndpoint  = "https://localhost:443"
+	testNamespace          = "foo"
+	testName               = "bar"
+	testCAData             = "caData"
+	testCertData           = "certData"
+	testKeyData            = "keyData"
+	testToken              = "token"
+	testEndpoint           = "https://localhost:443"
+	testExecConfigForToken = `{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecConfig",
+  "command": "echo",
+  "args": [
+    "{\"apiVersion\": \"client.authentication.k8s.io/v1beta1\", \"kind\": \"ExecCredential\", \"status\": {\"token\": \"token\"}}"
+  ]
+}`
+	testExecConfigForX509 = `{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecConfig",
+  "command": "echo",
+  "args": [
+    "{\"apiVersion\": \"client.authentication.k8s.io/v1beta1\", \"kind\": \"ExecCredential\", \"status\": {\"clientCertificateData\": \"certData\", \"clientKeyData\": \"keyData\"}}"
+  ]
+}`
 )
 
 func TestConvertSecretToGateway(t *testing.T) {
@@ -259,6 +275,101 @@ func TestConvertSecretToGateway(t *testing.T) {
 					HealthyReason: "MyReason",
 				},
 			},
+		},
+		{
+			name: "dynamic service account token issued from external command",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						common.LabelKeyClusterCredentialType: string(CredentialTypeDynamic),
+					},
+				},
+				Data: map[string][]byte{
+					"endpoint": []byte(testEndpoint),
+					"ca.crt":   []byte(testCAData),
+					"exec":     []byte(testExecConfigForToken),
+				},
+			},
+			expected: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testName,
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Credential: &ClusterAccessCredential{
+							Type:                CredentialTypeDynamic,
+							ServiceAccountToken: testToken,
+						},
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								CABundle: []byte(testCAData),
+								Address:  testEndpoint,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "dynamic x509 cert-key pair issued from external command",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						common.LabelKeyClusterCredentialType: string(CredentialTypeDynamic),
+					},
+				},
+				Data: map[string][]byte{
+					"endpoint": []byte(testEndpoint),
+					"ca.crt":   []byte(testCAData),
+					"exec":     []byte(testExecConfigForX509),
+				},
+			},
+			expected: &ClusterGateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testName,
+				},
+				Spec: ClusterGatewaySpec{
+					Access: ClusterAccess{
+						Credential: &ClusterAccessCredential{
+							Type: CredentialTypeDynamic,
+							X509: &X509{
+								Certificate: []byte(testCertData),
+								PrivateKey:  []byte(testKeyData),
+							},
+						},
+						Endpoint: &ClusterEndpoint{
+							Type: ClusterEndpointTypeConst,
+							Const: &ClusterEndpointConst{
+								CABundle: []byte(testCAData),
+								Address:  testEndpoint,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "failed to fetch cluster credential from dynamic auth mode",
+			inputSecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						common.LabelKeyClusterCredentialType: string(CredentialTypeDynamic),
+					},
+				},
+				Data: map[string][]byte{
+					"endpoint": []byte(testEndpoint),
+					"ca.crt":   []byte(testCAData),
+					"exec":     []byte("invalid exec config format"),
+				},
+			},
+			expectedFailure: true,
 		},
 	}
 	for _, c := range cases {
@@ -523,4 +634,80 @@ func TestListHybridClusterGateway(t *testing.T) {
 		actualNames.Insert(gw.Name)
 	}
 	assert.Equal(t, expectedNames, actualNames)
+}
+
+func TestBuildCredentialFromExecConfig(t *testing.T) {
+	cases := []struct {
+		name          string
+		secret        func(s *corev1.Secret) *corev1.Secret
+		cluster       func(ce *ClusterEndpoint) *ClusterEndpoint
+		expectedError string
+		expected      *ClusterAccessCredential
+	}{
+		{
+			name:          "missing exec config",
+			expectedError: "missing secret data key: exec",
+		},
+
+		{
+			name: "invalid exec config format",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte("some invalid exec config")
+				return s
+			},
+			expectedError: "failed to decode exec config JSON from secret data: invalid character 's' looking for beginning of value",
+		},
+
+		{
+			name: "returns successfully a service account token",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1\", \"status\": {\"token\": \"token\"}}"]}`)
+				return s
+			},
+			expected: &ClusterAccessCredential{
+				Type:                CredentialTypeDynamic,
+				ServiceAccountToken: testToken,
+			},
+		},
+
+		{
+			name: "returns successfully a X509 client certificate",
+			secret: func(s *corev1.Secret) *corev1.Secret {
+				s.Data["exec"] = []byte(`{"apiVersion": "client.authentication.k8s.io/v1", "command": "echo", "args": ["{\"apiVersion\": \"client.authentication.k8s.io/v1\", \"status\": {\"clientCertificateData\": \"certData\", \"clientKeyData\": \"keyData\"}}"]}`)
+				return s
+			},
+			expected: &ClusterAccessCredential{
+				Type: CredentialTypeDynamic,
+				X509: &X509{
+					Certificate: []byte(testCertData),
+					PrivateKey:  []byte(testKeyData),
+				},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testName,
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{},
+			}
+			if tt.secret != nil {
+				secret = tt.secret(secret)
+			}
+
+			got, err := buildCredentialFromExecConfig(secret)
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
 }
