@@ -379,7 +379,7 @@ var (
 		config.MetaApiGroupName,
 		config.MetaApiVersionName,
 		"clustergateways",
-		"[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+		"[a-z0-9]([-.a-z0-9]*[a-z0-9])?",
 		"proxy"}, "/"))
 	clusterGatewayProxyQueryKeysToEscape = []string{"dryRun"}
 	clusterGatewayProxyEscaperPrefix     = "__"
