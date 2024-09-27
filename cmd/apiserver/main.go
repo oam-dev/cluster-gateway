@@ -20,10 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/server"
+	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
-
-	genericfilters "k8s.io/apiserver/pkg/server/filters"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 	"github.com/oam-dev/cluster-gateway/pkg/metrics"
@@ -32,6 +31,7 @@ import (
 
 	// +kubebuilder:scaffold:resource-imports
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+	"github.com/oam-dev/cluster-gateway/pkg/apis/generated"
 
 	_ "github.com/oam-dev/cluster-gateway/pkg/featuregates"
 )
@@ -75,6 +75,7 @@ func main() {
 			return server
 		}).
 		WithPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient).
+		WithOpenAPIDefinitions("Cluster Gateway", "1.0.0", generated.GetOpenAPIDefinitions).
 		Build()
 	if err != nil {
 		klog.Fatal(err)

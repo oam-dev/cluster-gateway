@@ -186,6 +186,7 @@ func (in *ClusterGatewayProxyOptions) ConvertFromUrlValues(values *url.Values) e
 
 var _ http.Handler = &proxyHandler{}
 
+// +k8s:openapi-gen=false
 type proxyHandler struct {
 	parentName     string
 	path           string
@@ -340,7 +341,7 @@ func (p *proxyHandler) getImpersonationConfig(req *http.Request) restclient.Impe
 	if p.clusterGateway.Spec.ProxyConfig != nil {
 		matched, ruleName, projected, err := ExchangeIdentity(&p.clusterGateway.Spec.ProxyConfig.Spec.ClientIdentityExchanger, user, p.parentName)
 		if err != nil {
-			klog.Errorf("exchange identity with cluster config error: %w", err)
+			klog.Errorf("exchange identity with cluster config error: %v", err)
 		}
 		if matched {
 			klog.Infof("identity exchanged with rule `%s` in the proxy config from cluster `%s`", ruleName, p.clusterGateway.Name)
@@ -349,7 +350,7 @@ func (p *proxyHandler) getImpersonationConfig(req *http.Request) restclient.Impe
 	}
 	matched, ruleName, projected, err := ExchangeIdentity(&GlobalClusterGatewayProxyConfiguration.Spec.ClientIdentityExchanger, user, p.parentName)
 	if err != nil {
-		klog.Errorf("exchange identity with global config error: %w", err)
+		klog.Errorf("exchange identity with global config error: %v", err)
 	}
 	if matched {
 		klog.Infof("identity exchanged with rule `%s` in the proxy config from global config", ruleName)

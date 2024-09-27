@@ -11,9 +11,9 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.20'
-  GOLANGCI_VERSION: 'v1.49'
-  KIND_VERSION: 'v0.19.0'
+  GO_VERSION: '1.22'
+  GOLANGCI_VERSION: 'v1.56'
+  KIND_VERSION: 'v0.23.0'
 
 jobs:
 
@@ -54,9 +54,9 @@ jobs:
       - name: install Kubebuilder
         uses: RyanSiu1995/kubebuilder-action@v1.2
         with:
-          version: 3.1.0
+          version: 3.15.1
           kubebuilderOnly: false
-          kubernetesVersion: v1.22.0
+          kubernetesVersion: v1.29.0
       - name: Run Make test
         run: make test
       - name: Upload coverage report
@@ -93,6 +93,9 @@ jobs:
           restore-keys: ${{ runner.os }}-pkg-
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
+        with:
+          version: v0.24.0
+          node_image: kindest/node:v1.29.8
       - name: Build Image
         run: |
           make image
@@ -135,6 +138,9 @@ jobs:
         run: curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh | bash
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
+        with:
+          version: v0.24.0
+          node_image: kindest/node:v1.29.8
       - name: Prepare OCM testing environment
         run: |
           clusteradm init --output-join-command-file join.sh --wait
@@ -152,6 +158,8 @@ jobs:
             cluster-gateway ./charts/addon-manager \
             --set tag=latest
           go run ./e2e/env/prepare | kubectl apply -f -
+          kubectl rollout status deployment -n vela-system gateway-deployment --timeout 1m
+          kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
       - name: Run e2e test
         run: |
           make test-e2e-ocm
