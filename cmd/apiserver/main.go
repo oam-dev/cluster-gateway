@@ -17,6 +17,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/oam-dev/cluster-gateway/pkg/apis/generated"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/server"
@@ -74,6 +75,7 @@ func main() {
 			server.Handler.FullHandlerChain = clusterv1alpha1.NewClusterGatewayProxyRequestEscaper(server.Handler.FullHandlerChain)
 			return server
 		}).
+		WithOpenAPIDefinitions("Cluster Gateway", "1.0.0", generated.GetOpenAPIDefinitions).
 		WithPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient).
 		Build()
 	if err != nil {

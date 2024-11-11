@@ -28,7 +28,7 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.2
 	sigs.k8s.io/apiserver-runtime v1.1.2-0.20221102045245-fb656940062f
 	sigs.k8s.io/controller-runtime v0.16.6
-	sigs.k8s.io/controller-tools v0.11.3
+	sigs.k8s.io/controller-tools v0.13.0
 )
 
 require (
@@ -124,6 +124,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace (
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.36
-)
+replace sigs.k8s.io/apiserver-network-proxy/konnectivity-client => sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.36

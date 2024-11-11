@@ -3,7 +3,7 @@
 IMG ?= controller:latest
 IMG_TAG ?= latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
+CRD_OPTIONS ?= "crd"
 
 OS?=linux
 ARCH?=amd64
@@ -76,12 +76,27 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.13.0 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
+endif
+
+openapi-gen:
+ifeq (, $(shell which openapi-gen))
+	@{ \
+	set -e ;\
+	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$CONTROLLER_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go install k8s.io/kube-openapi/cmd/openapi-gen@v0.0.0-20240228011516-70dd3763d340 ;\
+	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	}
+OPENAPI_GEN=$(GOBIN)/openapi-gen
+else
+OPENAPI_GEN=$(shell which openapi-gen)
 endif
 
 kustomize:
@@ -100,16 +115,27 @@ KUSTOMIZE=$(shell which kustomize)
 endif
 
 client-gen:
-	go install k8s.io/code-generator/cmd/client-gen@v0.21.2
+	go install k8s.io/code-generator/cmd/client-gen@v0.28.9
 	apiserver-runtime-gen \
  	--module github.com/oam-dev/cluster-gateway \
  	-g client-gen \
  	--versions=github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1 \
  	--install-generators=false
 
-
-generate: controller-gen
+generate: controller-gen openapi-gen
 	${CONTROLLER_GEN} object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/proxy/..."
+	${OPENAPI_GEN} \
+	--output-pkg github.com/oam-dev/cluster-gateway/pkg/apis \
+	--output-file zz_generated.openapi.go \
+	--output-dir ./pkg/apis/generated \
+	--output-pkg "generated" \
+	--go-header-file ./hack/boilerplate.go.txt \
+	./pkg/apis/proxy/v1alpha1 \
+	./pkg/apis/cluster/v1alpha1 \
+	k8s.io/apimachinery/pkg/api/resource \
+	k8s.io/apimachinery/pkg/apis/meta/v1 \
+	k8s.io/apimachinery/pkg/runtime \
+	k8s.io/apimachinery/pkg/version
 
 manifests: controller-gen
 	${CONTROLLER_GEN} $(CRD_OPTIONS) \

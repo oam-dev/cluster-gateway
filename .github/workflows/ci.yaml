@@ -13,7 +13,7 @@ env:
   # Common versions
   GO_VERSION: '1.20'
   GOLANGCI_VERSION: 'v1.49'
-  KIND_VERSION: 'v0.19.0'
+  KIND_VERSION: 'v0.23.0'
 
 jobs:
 
@@ -54,9 +54,9 @@ jobs:
       - name: install Kubebuilder
         uses: RyanSiu1995/kubebuilder-action@v1.2
         with:
-          version: 3.1.0
+          version: 3.15.0
           kubebuilderOnly: false
-          kubernetesVersion: v1.22.0
+          kubernetesVersion: v1.28.9
       - name: Run Make test
         run: make test
       - name: Upload coverage report
@@ -93,6 +93,9 @@ jobs:
           restore-keys: ${{ runner.os }}-pkg-
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
+        with:
+          version: v0.23.0
+          node_image: kindest/node:v1.28.9
       - name: Build Image
         run: |
           make image

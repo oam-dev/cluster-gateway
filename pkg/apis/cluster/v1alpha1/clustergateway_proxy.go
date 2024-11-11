@@ -186,6 +186,7 @@ func (in *ClusterGatewayProxyOptions) ConvertFromUrlValues(values *url.Values) e
 
 var _ http.Handler = &proxyHandler{}
 
+// +k8s:openapi-gen=false
 type proxyHandler struct {
 	parentName     string
 	path           string
