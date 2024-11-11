@@ -21,6 +21,8 @@ import (
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	ocmauthv1alpha1 "open-cluster-management.io/managed-serviceaccount/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -29,11 +31,11 @@ var (
 )
 
 func init() {
-	addonv1alpha1.AddToScheme(scheme)
-	proxyv1alpha1.AddToScheme(scheme)
-	nativescheme.AddToScheme(scheme)
-	apiregistrationv1.AddToScheme(scheme)
-	ocmauthv1alpha1.AddToScheme(scheme)
+	_ = addonv1alpha1.AddToScheme(scheme)
+	_ = proxyv1alpha1.AddToScheme(scheme)
+	_ = nativescheme.AddToScheme(scheme)
+	_ = apiregistrationv1.AddToScheme(scheme)
+	_ = ocmauthv1alpha1.AddToScheme(scheme)
 }
 
 func main() {
@@ -57,9 +59,13 @@ func main() {
 	ctrl.SetLogger(logger)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port: 9443,
+		}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "cluster-gateway-addon-manager",

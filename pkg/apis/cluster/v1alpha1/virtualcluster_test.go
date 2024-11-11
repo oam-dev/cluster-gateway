@@ -18,6 +18,7 @@ package v1alpha1_test
 
 import (
 	"context"
+	"sort"
 	"testing"
 	"time"
 
@@ -199,6 +200,9 @@ var _ = Describe("Test Cluster API", func() {
 		clusters, ok := objs.(*v1alpha1.VirtualClusterList)
 		Ω(ok).To(BeTrue())
 		Expect(len(clusters.Items)).To(Equal(3))
+		sort.Slice(clusters.Items, func(i, j int) bool {
+			return clusters.Items[i].Name < clusters.Items[j].Name
+		})
 		Expect(clusters.Items[0].Name).To(Equal("local"))
 		Expect(clusters.Items[1].Name).To(Equal("ocm-cluster"))
 		Expect(clusters.Items[2].Name).To(Equal("test-cluster"))
@@ -209,6 +213,9 @@ var _ = Describe("Test Cluster API", func() {
 		clusters, ok = objs.(*v1alpha1.VirtualClusterList)
 		Ω(ok).To(BeTrue())
 		Expect(len(clusters.Items)).To(Equal(2))
+		sort.Slice(clusters.Items, func(i, j int) bool {
+			return clusters.Items[i].Name < clusters.Items[j].Name
+		})
 		Expect(clusters.Items[0].Name).To(Equal("ocm-cluster"))
 		Expect(clusters.Items[1].Name).To(Equal("test-cluster"))
 
@@ -220,6 +227,9 @@ var _ = Describe("Test Cluster API", func() {
 		clusters, ok = objs.(*v1alpha1.VirtualClusterList)
 		Ω(ok).To(BeTrue())
 		Expect(len(clusters.Items)).To(Equal(2))
+		sort.Slice(clusters.Items, func(i, j int) bool {
+			return clusters.Items[i].Name < clusters.Items[j].Name
+		})
 		Expect(clusters.Items[0].Name).To(Equal("ocm-cluster"))
 		Expect(clusters.Items[1].Name).To(Equal("test-cluster"))
 
