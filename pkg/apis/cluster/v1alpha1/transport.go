@@ -30,12 +30,13 @@ var DialerGetter = func(ctx context.Context) (k8snet.DialFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	dialerTunnel, err := konnectivity.CreateSingleUseGrpcTunnel(
+	dialerTunnel, err := konnectivity.CreateSingleUseGrpcTunnelWithContext(
 		ctx,
+		context.Background(),
 		net.JoinHostPort(config.ClusterProxyHost, strconv.Itoa(config.ClusterProxyPort)),
 		grpc.WithTransportCredentials(grpccredentials.NewTLS(tlsCfg)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time: time.Second * 5,
+			Time: 20 * time.Second,
 		}),
 	)
 	if err != nil {
