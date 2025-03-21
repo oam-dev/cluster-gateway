@@ -135,12 +135,12 @@ func TestProxyHandler(t *testing.T) {
 				Verb: "get",
 			},
 		},
-	}
+	} 
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			if len(c.featureGate) > 0 {
-				defer k8stesting.SetFeatureGateDuringTest(t, feature.DefaultMutableFeatureGate, c.featureGate, true)()
+				k8stesting.SetFeatureGateDuringTest(t, feature.DefaultMutableFeatureGate, c.featureGate, true)
 			}
 			text := "ok"
 			var receivingReq *http.Request

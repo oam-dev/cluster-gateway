@@ -82,7 +82,7 @@ func InitLoopbackClient(ctx server.PostStartHookContext) error {
 		return err
 	}
 	if utilfeature.DefaultMutableFeatureGate.Enabled(featuregates.SecretCache) {
-		if err := setInformer(kubeClient, ctx.StopCh); err != nil {
+		if err := setInformer(kubeClient, ctx.Done()); err != nil {
 			return err
 		}
 		secretControl = cert.NewCachedSecretControl(config.SecretNamespace, secretLister)
@@ -97,7 +97,7 @@ func InitLoopbackClient(ctx server.PostStartHookContext) error {
 			klog.Error(err)
 		} else if !installed {
 			klog.Infof("OCM ManagedCluster CRD not installed, skip bootstrapping informer for OCM ManagedCluster")
-		} else if err := setOCMClusterInformer(ocmClient, ctx.StopCh); err != nil {
+		} else if err := setOCMClusterInformer(ocmClient, ctx.Done()); err != nil {
 			return err
 		}
 		clusterControl = clusterutil.NewCacheOCMClusterControl(clusterLister)
