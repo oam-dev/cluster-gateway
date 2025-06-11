@@ -17,32 +17,32 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/common"
 )
 
-func AddOnHealthResyncHandler(c client.Client, interval time.Duration) (*source.Channel, handler.EventHandler) {
-	ch := StartBackgroundExternalTimerResync(func() ([]event.GenericEvent, error) {
+func AddOnHealthResyncHandler(c client.Client, interval time.Duration) source.TypedSource[reconcile.Request] {
+	src := StartBackgroundExternalTimerResync(func() ([]event.TypedGenericEvent[client.Object], error) {
 		addonList := &addonv1alpha1.ManagedClusterAddOnList{}
 		if err := c.List(context.TODO(), addonList); err != nil {
 			return nil, err
 		}
-		evs := make([]event.GenericEvent, 0)
+		evs := make([]event.TypedGenericEvent[client.Object], 0)
 		for _, addon := range addonList.Items {
 			if addon.Name != common.AddonName {
 				continue
 			}
 			addon := addon
-			evs = append(evs, event.GenericEvent{
+			evs = append(evs, event.TypedGenericEvent[client.Object]{
 				Object: &addon,
 			})
 		}
 		return evs, nil
 	}, interval)
-	return ch, AddonHealthHandler{}
+	return src
 }
 
-type GeneratorFunc func() ([]event.GenericEvent, error)
+type GeneratorFunc func() ([]event.TypedGenericEvent[client.Object], error)
 
-func StartBackgroundExternalTimerResync(g GeneratorFunc, interval time.Duration) *source.Channel {
-	events := make(chan event.GenericEvent) // unbuffered
-	ch := &source.Channel{Source: events}
+func StartBackgroundExternalTimerResync(g GeneratorFunc, interval time.Duration) source.TypedSource[reconcile.Request] {
+	events := make(chan event.TypedGenericEvent[client.Object])
+	ch := source.Channel[client.Object](events, AddonHealthHandler{})
 	ticker := time.NewTicker(interval)
 	go func() {
 		for {
@@ -63,12 +63,12 @@ func StartBackgroundExternalTimerResync(g GeneratorFunc, interval time.Duration)
 	return ch
 }
 
-var _ handler.EventHandler = &AddonHealthHandler{}
+var _ handler.EventHandler = AddonHealthHandler{}
 
 type AddonHealthHandler struct {
 }
 
-func (a AddonHealthHandler) Generic(_ context.Context, genericEvent event.GenericEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Generic(_ context.Context, genericEvent event.TypedGenericEvent[client.Object], limitingInterface workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	limitingInterface.Add(reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Namespace: genericEvent.Object.GetNamespace(),
@@ -77,14 +77,14 @@ func (a AddonHealthHandler) Generic(_ context.Context, genericEvent event.Generi
 	})
 }
 
-func (a AddonHealthHandler) Create(_ context.Context, createEvent event.CreateEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Create(_ context.Context, createEvent event.TypedCreateEvent[client.Object], limitingInterface workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	panic("implement me") // unreachable
 }
 
-func (a AddonHealthHandler) Update(_ context.Context, updateEvent event.UpdateEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Update(_ context.Context, updateEvent event.TypedUpdateEvent[client.Object], limitingInterface workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	panic("implement me") // unreachable
 }
 
-func (a AddonHealthHandler) Delete(_ context.Context, deleteEvent event.DeleteEvent, limitingInterface workqueue.RateLimitingInterface) {
+func (a AddonHealthHandler) Delete(_ context.Context, deleteEvent event.TypedDeleteEvent[client.Object], limitingInterface workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	panic("implement me") // unreachable
 }
