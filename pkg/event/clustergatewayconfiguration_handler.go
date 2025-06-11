@@ -22,27 +22,27 @@ type ClusterGatewayConfigurationHandler struct {
 	client.Client
 }
 
-func (c *ClusterGatewayConfigurationHandler) Create(ctx context.Context, event event.CreateEvent, q workqueue.RateLimitingInterface) {
-	cfg := event.Object.(*proxyv1alpha1.ClusterGatewayConfiguration)
+func (c *ClusterGatewayConfigurationHandler) Create(ctx context.Context, e event.TypedCreateEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	cfg := e.Object.(*proxyv1alpha1.ClusterGatewayConfiguration)
 	c.process(ctx, cfg, q)
 }
 
-func (c *ClusterGatewayConfigurationHandler) Update(ctx context.Context, event event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	cfg := event.ObjectNew.(*proxyv1alpha1.ClusterGatewayConfiguration)
+func (c *ClusterGatewayConfigurationHandler) Update(ctx context.Context, e event.TypedUpdateEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	cfg := e.ObjectNew.(*proxyv1alpha1.ClusterGatewayConfiguration)
 	c.process(ctx, cfg, q)
 }
 
-func (c *ClusterGatewayConfigurationHandler) Delete(ctx context.Context, event event.DeleteEvent, q workqueue.RateLimitingInterface) {
-	cfg := event.Object.(*proxyv1alpha1.ClusterGatewayConfiguration)
+func (c *ClusterGatewayConfigurationHandler) Delete(ctx context.Context, e event.TypedDeleteEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	cfg := e.Object.(*proxyv1alpha1.ClusterGatewayConfiguration)
 	c.process(ctx, cfg, q)
 }
 
-func (c *ClusterGatewayConfigurationHandler) Generic(ctx context.Context, event event.GenericEvent, q workqueue.RateLimitingInterface) {
-	cfg := event.Object.(*proxyv1alpha1.ClusterGatewayConfiguration)
+func (c *ClusterGatewayConfigurationHandler) Generic(ctx context.Context, e event.TypedGenericEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
+	cfg := e.Object.(*proxyv1alpha1.ClusterGatewayConfiguration)
 	c.process(ctx, cfg, q)
 }
 
-func (c *ClusterGatewayConfigurationHandler) process(ctx context.Context, config *proxyv1alpha1.ClusterGatewayConfiguration, q workqueue.RateLimitingInterface) {
+func (c *ClusterGatewayConfigurationHandler) process(ctx context.Context, config *proxyv1alpha1.ClusterGatewayConfiguration, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	list := addonv1alpha1.ClusterManagementAddOnList{}
 
 	if err := c.Client.List(ctx, &list); err != nil {
