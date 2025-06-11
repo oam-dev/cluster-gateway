@@ -108,7 +108,7 @@ ifeq (, $(shell which kustomize))
 	go mod init tmp ;\
 	go get sigs.k8s.io/kustomize/kustomize/v3@v3.5.4 ;\
 	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
-	}
+	}chore: update event handling to use typed events and bump dependencies
 KUSTOMIZE=$(GOBIN)/kustomize
 else
 KUSTOMIZE=$(shell which kustomize)
