@@ -162,4 +162,9 @@ jobs:
           kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
       - name: Run e2e test
         run: |
+          kubectl get clusterrolebinding apiserver-aggregation:cluster-gateway -n vela-system -o yaml
+          echo "---------------------------------------------------------------------"
+          kubectl get clusterrole apiserver-aggregation:cluster-gateway -n vela-system -o yaml
+          echo "---------------------------------------------------------------------"
+          kubectl get deployment.apps/gateway-deployment -n vela-system -o yaml
           make test-e2e-ocm
