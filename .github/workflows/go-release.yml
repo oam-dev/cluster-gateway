@@ -54,6 +54,7 @@ jobs:
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
+          clean: true
       - name: install Go
         uses: actions/setup-go@v5
         with:
@@ -126,7 +127,9 @@ jobs:
         uses: azure/setup-helm@v1
       - name: chart package
         run: |
-          mkdir -p release
+          if [ ! -d release ]; then
+                mkdir release
+          fi
           pushd release
           helm package ../charts/cluster-gateway/
           helm package ../charts/addon-manager/
