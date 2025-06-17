@@ -11,7 +11,7 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.23'
   GOLANGCI_VERSION: 'v1.56'
   KIND_VERSION: 'v0.23.0'
 
@@ -37,16 +37,16 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
         id: go
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Cache Go Dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: .work/pkg
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -60,7 +60,7 @@ jobs:
       - name: Run Make test
         run: make test
       - name: Upload coverage report
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: cover.out
@@ -77,16 +77,16 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
         id: go
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Cache Go Dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: .work/pkg
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -95,7 +95,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           version: v0.24.0
-          node_image: kindest/node:v1.29.8
+          node_image: kindest/node:v1.31.1
       - name: Build Image
         run: |
           make image
@@ -120,16 +120,16 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
         id: go
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Cache Go Dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: .work/pkg
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -140,7 +140,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           version: v0.24.0
-          node_image: kindest/node:v1.29.8
+          node_image: kindest/node:v1.31.1
       - name: Prepare OCM testing environment
         run: |
           clusteradm init --output-join-command-file join.sh --wait

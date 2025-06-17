@@ -2,6 +2,7 @@ package event
 
 import (
 	"github.com/oam-dev/cluster-gateway/pkg/common"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"context"
 
@@ -19,23 +20,23 @@ type APIServiceHandler struct {
 	WatchingName string
 }
 
-func (a *APIServiceHandler) Create(_ context.Context, event event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Create(_ context.Context, event event.TypedCreateEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	a.process(event.Object.(*apiregistrationv1.APIService), q)
 }
 
-func (a *APIServiceHandler) Update(_ context.Context, event event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Update(_ context.Context, event event.TypedUpdateEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	a.process(event.ObjectNew.(*apiregistrationv1.APIService), q)
 }
 
-func (a *APIServiceHandler) Delete(_ context.Context, event event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Delete(_ context.Context, event event.TypedDeleteEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	a.process(event.Object.(*apiregistrationv1.APIService), q)
 }
 
-func (a *APIServiceHandler) Generic(_ context.Context, event event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) Generic(_ context.Context, event event.TypedGenericEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	a.process(event.Object.(*apiregistrationv1.APIService), q)
 }
 
-func (a *APIServiceHandler) process(apiService *apiregistrationv1.APIService, q workqueue.RateLimitingInterface) {
+func (a *APIServiceHandler) process(apiService *apiregistrationv1.APIService, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	if apiService.Name == a.WatchingName {
 		q.Add(reconcile.Request{
 			NamespacedName: types.NamespacedName{

@@ -47,10 +47,10 @@ func SetupClusterGatewayHealthProberWithManager(mgr ctrl.Manager) error {
 		gatewayClient:          gatewayClient,
 		runtimeClient:          mgr.GetClient(),
 	}
-	ch, handler := event.AddOnHealthResyncHandler(mgr.GetClient(), time.Second)
+	src := event.AddOnHealthResyncHandler(mgr.GetClient(), time.Second)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&addonv1alpha1.ManagedClusterAddOn{}).
-		WatchesRawSource(ch, handler).
+		WatchesRawSource(src).
 		Complete(prober)
 }
 
