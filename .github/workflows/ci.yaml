@@ -56,7 +56,7 @@ jobs:
         with:
           version: 3.15.1
           kubebuilderOnly: false
-          kubernetesVersion: v1.29.0
+          kubernetesVersion: v1.32.2
       - name: Run Make test
         run: make test
       - name: Upload coverage report
@@ -140,7 +140,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           version: v0.24.0
-          node_image: kindest/node:v1.31.1
+          node_image: kindest/node:v1.32.2
       - name: Prepare OCM testing environment
         run: |
           clusteradm init --output-join-command-file join.sh --wait
