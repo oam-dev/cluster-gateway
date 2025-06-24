@@ -50,6 +50,9 @@ func TestVirtualCluster(t *testing.T) {
 var testEnv *envtest.Environment
 var cli ctrlClient.Client
 
+// Add comment to trigger the failing test
+
+
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 	By("Bootstrapping Test Environment")
