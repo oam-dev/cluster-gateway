@@ -22,43 +22,51 @@ const (
 
 var _ = Describe("Addon Manager Test", func() {
 	f := framework.NewE2EFramework(ocmTestBasename)
-	It("ClusterGateway addon installation should work",
-		func() {
-			c := f.HubRuntimeClient()
-			By("Polling addon and gateway healthiness")
-			Eventually(
-				func() (bool, error) {
-					addon := &addonapiv1alpha1.ManagedClusterAddOn{}
-					if err := c.Get(context.TODO(), types.NamespacedName{
-						Namespace: f.TestClusterName(),
-						Name:      common.AddonName,
-					}, addon); err != nil {
-						if apierrors.IsNotFound(err) {
-							return false, nil
-						}
-						return false, err
-					}
-					if addon.Status.HealthCheck.Mode != addonapiv1alpha1.HealthCheckModeCustomized {
+
+	It("ClusterGateway addon installation should work", func() {
+		c := f.HubRuntimeClient()
+		By("Polling addon and gateway healthiness")
+		Eventually(
+			func() (bool, error) {
+				addon := &addonapiv1alpha1.ManagedClusterAddOn{}
+				if err := c.Get(context.TODO(), types.NamespacedName{
+					Namespace: f.TestClusterName(),
+					Name:      common.AddonName,
+				}, addon); err != nil {
+					if apierrors.IsNotFound(err) {
 						return false, nil
 					}
-					addonHealthy := meta.IsStatusConditionTrue(
-						addon.Status.Conditions,
-						addonapiv1alpha1.ManagedClusterAddOnConditionAvailable)
-					gw, err := f.HubGatewayClient().
-						ClusterV1alpha1().
-						ClusterGateways().
-						GetHealthiness(context.TODO(), f.TestClusterName(), metav1.GetOptions{})
-					if err != nil {
-						return false, err
+					return false, err
+				}
+				if addon.Status.HealthCheck.Mode != addonapiv1alpha1.HealthCheckModeCustomized {
+					return false, nil
+				}
+				addonHealthy := meta.IsStatusConditionTrue(
+					addon.Status.Conditions,
+					addonapiv1alpha1.ManagedClusterAddOnConditionAvailable)
+				gw, err := f.HubGatewayClient().
+					ClusterV1alpha1().
+					ClusterGateways().
+					GetHealthiness(context.TODO(), f.TestClusterName(), metav1.GetOptions{})
+				if err != nil {
+					if se, ok := err.(*apierrors.StatusError); ok {
+						if se.ErrStatus.Code == 503 {
+							// Transient apiserver problem, keep polling
+							return false, nil
+						}
 					}
-					gwHealthy := gw.Status.Healthy
-					return addonHealthy && gwHealthy, nil
-				}).
-				WithTimeout(5 * time.Minute).
-				Should(BeTrue())
-		})
-	It("Manual probe healthiness should work",
-		func() {
+					return false, err
+				}
+				gwHealthy := gw.Status.Healthy
+				return addonHealthy && gwHealthy, nil
+			}).
+			WithTimeout(5 * time.Minute).
+			WithPolling(5 * time.Second).
+			Should(BeTrue())
+	})
+
+	It("Manual probe healthiness should work", func() {
+		Eventually(func() (string, error) {
 			resp, err := f.HubNativeClient().Discovery().
 				RESTClient().
 				Get().
@@ -68,7 +76,18 @@ var _ = Describe("Addon Manager Test", func() {
 					"proxy",
 					"healthz",
 				).DoRaw(context.TODO())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(resp)).To(Equal("ok"))
-		})
+			if err != nil {
+				if se, ok := err.(*apierrors.StatusError); ok {
+					if se.ErrStatus.Code == 503 {
+						return "", nil // Keep retrying on 503
+					}
+				}
+				return "", err // fail on other errors
+			}
+			return string(resp), nil
+		}).
+			WithTimeout(2 * time.Minute).
+			WithPolling(5 * time.Second).
+			Should(Equal("ok"))
+	})
 })
