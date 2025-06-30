@@ -10,7 +10,6 @@ on:
       - master
 
 env:
-  # Common versions
   GO_VERSION: '1.23'
   GOLANGCI_VERSION: 'v1.56'
   KIND_VERSION: 'v0.29.0'
@@ -53,14 +52,9 @@ jobs:
           restore-keys: ${{ runner.os }}-pkg-
       - name: install Kubebuilder
         run: |
-          # Install setup-envtest for managing test binaries
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-          
-          # Setup the test environment with the correct Kubernetes version
           export KUBEBUILDER_ASSETS=$(setup-envtest use 1.31.x --print path --bin-dir ~/.local/bin)
           echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
-          
-          # Verify the setup
           ls -la $KUBEBUILDER_ASSETS
       - name: Run Make test
         run: make test
@@ -114,6 +108,16 @@ jobs:
             --set tag=latest
           kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
           go run ./e2e/env/prepare | kubectl apply -f -
+      - name: Wait for all resources to be ready
+        run: |
+          # Wait for all CRDs to be established
+          kubectl wait --for=condition=Established crd --all --timeout=120s
+          # Wait for all APIService to be available
+          kubectl wait --for=condition=Available apiservice --all --timeout=120s
+          # Wait for all Deployments in vela-system
+          kubectl wait deployment --all -n vela-system --for=condition=Available --timeout=180s || true
+          # Wait for all Pods in vela-system to be ready
+          kubectl wait pod --all -n vela-system --for=condition=Ready --timeout=180s || true
       - name: Run Make test
         run: |
           kubectl get clustergateway
@@ -165,6 +169,17 @@ jobs:
           go run ./e2e/env/prepare | kubectl apply -f -
           kubectl rollout status deployment -n vela-system gateway-deployment --timeout 1m
           kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
+      - name: Wait for all resources to be ready
+        run: |
+          # Wait for all CRDs to be established
+          kubectl wait --for=condition=Established crd --all --timeout=120s
+          # Wait for all APIService to be available
+          kubectl wait --for=condition=Available apiservice --all --timeout=120s
+          # Wait for all Deployments in both namespaces
+          for ns in vela-system open-cluster-management-addon; do
+            kubectl wait deployment --all -n $ns --for=condition=Available --timeout=180s || true
+            kubectl wait pod --all -n $ns --for=condition=Ready --timeout=180s || true
+          done
       - name: Run e2e test
         run: |
           make test-e2e-ocm
