@@ -108,16 +108,6 @@ jobs:
             --set tag=latest
           kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
           go run ./e2e/env/prepare | kubectl apply -f -
-      - name: Wait for all resources to be ready
-        run: |
-          # Wait for all CRDs to be established
-          kubectl wait --for=condition=Established crd --all --timeout=120s
-          # Wait for all APIService to be available
-          kubectl wait --for=condition=Available apiservice --all --timeout=120s
-          # Wait for all Deployments in vela-system
-          kubectl wait deployment --all -n vela-system --for=condition=Available --timeout=180s || true
-          # Wait for all Pods in vela-system to be ready
-          kubectl wait pod --all -n vela-system --for=condition=Ready --timeout=180s || true
       - name: Run Make test
         run: |
           kubectl get clustergateway
