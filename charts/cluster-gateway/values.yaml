@@ -1,13 +1,5 @@
 # Specs of gateway-deployment deployment
 image: oamdev/cluster-gateway
-resources:
-  requests:
-    cpu: "250m"
-    memory: "256Mi"
-  limits:
-    cpu: "500m"
-    memory: "512Mi"
-
 
 tag:
 

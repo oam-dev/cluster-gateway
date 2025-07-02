@@ -13,7 +13,8 @@ env:
   # Common versions
   GO_VERSION: '1.23'
   GOLANGCI_VERSION: 'v1.56'
-  KIND_VERSION: 'v0.27.0'
+  KIND_VERSION: 'v0.29.0'
+  K8S_VERSION: 'v1.31.9'
 
 jobs:
 
@@ -100,7 +101,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           version: ${{ env.KIND_VERSION }}
-          node_image: kindest/node:v1.31.6
+          node_image: kindest/node:${{ env.K8S_VERSION }}
       - name: Build Image
         run: |
           make image
@@ -145,7 +146,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           version: ${{ env.KIND_VERSION }}
-          node_image: kindest/node:v1.31.6
+          node_image: kindest/node:${{ env.K8S_VERSION }}
       - name: Prepare OCM testing environment
         run: |
           set -ex
