@@ -27,6 +27,13 @@ spec:
         - name: gateway
           image: {{ .Values.image }}:{{ .Values.tag | default (print "v" .Chart.Version) }}
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
           args:
             - --secure-port=9443
             - --secret-namespace={{ .Values.secretNamespace }}
