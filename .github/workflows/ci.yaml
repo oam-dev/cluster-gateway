@@ -172,4 +172,3 @@ jobs:
         run: |
           set -ex
           make test-e2e-ocm
-          kubectl get nodes
