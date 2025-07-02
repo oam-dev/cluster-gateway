@@ -147,6 +147,7 @@ jobs:
         with:
           version: ${{ env.KIND_VERSION }}
           node_image: kindest/node:${{ env.K8S_VERSION }}
+          config: e2e/config/kind-config.yaml
       - name: Prepare OCM testing environment
         run: |
           set -ex
@@ -171,3 +172,4 @@ jobs:
         run: |
           set -ex
           make test-e2e-ocm
+          kubectl get nodes
