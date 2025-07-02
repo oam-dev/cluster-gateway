@@ -148,6 +148,7 @@ jobs:
           node_image: kindest/node:v1.31.9
       - name: Prepare OCM testing environment
         run: |
+          set -ex
           clusteradm init --output-join-command-file join.sh --wait
           sh -c "$(cat join.sh) loopback --force-internal-endpoint-lookup"
           clusteradm accept --clusters loopback --wait 30
@@ -167,4 +168,5 @@ jobs:
           kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
       - name: Run e2e test
         run: |
+          set -ex
           make test-e2e-ocm
