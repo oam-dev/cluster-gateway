@@ -160,13 +160,15 @@ jobs:
           kind load docker-image oamdev/cluster-gateway-addon-manager:latest  --name chart-testing
       - name: Install latest cluster-gateway
         run: |
+          set -ex
           helm install --create-namespace -n open-cluster-management-addon \
             cluster-gateway ./charts/addon-manager \
             --set tag=latest
           go run ./e2e/env/prepare | kubectl apply -f -
           kubectl rollout status deployment -n vela-system gateway-deployment --timeout 1m
-          kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
+          kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev --timeout=300s
       - name: Run e2e test
         run: |
+          sleep 360
           kubectl get clustergateways -A
           make test-e2e-ocm
