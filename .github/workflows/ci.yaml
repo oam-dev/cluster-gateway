@@ -147,7 +147,6 @@ jobs:
         with:
           version: ${{ env.KIND_VERSION }}
           node_image: kindest/node:${{ env.K8S_VERSION }}
-          config: e2e/config/kind-config.yaml
       - name: Prepare OCM testing environment
         run: |
           clusteradm init --output-join-command-file join.sh --wait
@@ -169,4 +168,5 @@ jobs:
           kubectl wait --for=condition=Available apiservice/v1alpha1.cluster.core.oam.dev
       - name: Run e2e test
         run: |
+          kubectl get clustergateways -A
           make test-e2e-ocm

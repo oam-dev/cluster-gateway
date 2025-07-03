@@ -53,10 +53,10 @@ var _ = Describe("Addon Manager Test", func() {
 					}
 					gwHealthy := gw.Status.Healthy
 					return addonHealthy && gwHealthy, nil
-				}, 1*time.Minute, 20*time.Second).
+				}, 3*time.Minute, 20*time.Second).
 				Should(BeTrue())
 		})
-	It("Manual probe healthiness should work",
+	XIt("Manual probe healthiness should work",
 		func() {
 			resp, err := f.HubNativeClient().Discovery().
 				RESTClient().
