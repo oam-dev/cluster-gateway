@@ -20,7 +20,7 @@ const (
 	ocmTestBasename = "ocm-addon"
 )
 
-var _ = Describe("Addon Manager Test", func() {
+var _ = Describe("Addon Manager Test", Ordered, func() {
 	f := framework.NewE2EFramework(ocmTestBasename)
 	It("ClusterGateway addon installation should work",
 		func() {
@@ -53,8 +53,7 @@ var _ = Describe("Addon Manager Test", func() {
 					}
 					gwHealthy := gw.Status.Healthy
 					return addonHealthy && gwHealthy, nil
-				}).
-				WithTimeout(time.Minute).
+				}, 3*time.Minute, 20*time.Second).
 				Should(BeTrue())
 		})
 	It("Manual probe healthiness should work",

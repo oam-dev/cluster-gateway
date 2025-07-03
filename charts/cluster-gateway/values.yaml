@@ -1,4 +1,4 @@
-# Image of the cluster-gateway instances
+# Specs of gateway-deployment deployment
 image: oamdev/cluster-gateway
 
 tag:
