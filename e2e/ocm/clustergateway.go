@@ -53,8 +53,7 @@ var _ = Describe("Addon Manager Test", func() {
 					}
 					gwHealthy := gw.Status.Healthy
 					return addonHealthy && gwHealthy, nil
-				}).
-				WithTimeout(time.Minute).
+				}, 1*time.Minute, 20*time.Second).
 				Should(BeTrue())
 		})
 	It("Manual probe healthiness should work",
