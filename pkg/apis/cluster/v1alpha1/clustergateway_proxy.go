@@ -57,7 +57,10 @@ var _ registryrest.Connecter = &ClusterGatewayProxy{}
 var proxyMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 
 // ClusterGatewayProxy is a subresource for ClusterGateway which allows user to proxy
-// kubernetes resource requests to the managed cluster.
+// kubernetes resource requests to the managed cluster. It is never itself
+// serialized on the wire: Connect proxies the raw HTTP request/response.
+//
+// +k8s:openapi-gen=false
 type ClusterGatewayProxy struct {
 	// Parent is the storage of the parent ClusterGateway resource, used to
 	// resolve the target cluster for a proxy request.

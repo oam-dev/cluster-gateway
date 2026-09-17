@@ -36,9 +36,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterEndpoint":                                 schema_pkg_apis_cluster_v1alpha1_ClusterEndpoint(ref),
 		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterEndpointConst":                            schema_pkg_apis_cluster_v1alpha1_ClusterEndpointConst(ref),
 		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGateway":                                  schema_pkg_apis_cluster_v1alpha1_ClusterGateway(ref),
-		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayHealth":                            schema_pkg_apis_cluster_v1alpha1_ClusterGatewayHealth(ref),
 		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayList":                              schema_pkg_apis_cluster_v1alpha1_ClusterGatewayList(ref),
-		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayProxy":                             schema_pkg_apis_cluster_v1alpha1_ClusterGatewayProxy(ref),
 		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayProxyConfiguration":                schema_pkg_apis_cluster_v1alpha1_ClusterGatewayProxyConfiguration(ref),
 		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayProxyConfigurationSpec":            schema_pkg_apis_cluster_v1alpha1_ClusterGatewayProxyConfigurationSpec(ref),
 		"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayProxyOptions":                      schema_pkg_apis_cluster_v1alpha1_ClusterGatewayProxyOptions(ref),
@@ -173,7 +171,8 @@ func schema_pkg_apis_cluster_v1alpha1_ClientIdentityExchanger(ref common.Referen
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClientIdentityExchangeRule"),
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClientIdentityExchangeRule"),
 									},
 								},
 							},
@@ -366,52 +365,6 @@ func schema_pkg_apis_cluster_v1alpha1_ClusterGateway(ref common.ReferenceCallbac
 	}
 }
 
-func schema_pkg_apis_cluster_v1alpha1_ClusterGatewayHealth(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1.ObjectMeta{}.OpenAPIModelName()),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewaySpec"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayStatus"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewaySpec", "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGatewayStatus", v1.ObjectMeta{}.OpenAPIModelName()},
-	}
-}
-
 func schema_pkg_apis_cluster_v1alpha1_ClusterGatewayList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -445,7 +398,8 @@ func schema_pkg_apis_cluster_v1alpha1_ClusterGatewayList(ref common.ReferenceCal
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGateway"),
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGateway"),
 									},
 								},
 							},
@@ -457,17 +411,6 @@ func schema_pkg_apis_cluster_v1alpha1_ClusterGatewayList(ref common.ReferenceCal
 		},
 		Dependencies: []string{
 			"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.ClusterGateway", v1.ListMeta{}.OpenAPIModelName()},
-	}
-}
-
-func schema_pkg_apis_cluster_v1alpha1_ClusterGatewayProxy(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ClusterGatewayProxy is a subresource for ClusterGateway which allows user to proxy kubernetes resource requests to the managed cluster.",
-				Type:        []string{"object"},
-			},
-		},
 	}
 }
 
@@ -694,8 +637,9 @@ func schema_pkg_apis_cluster_v1alpha1_IdentityExchangerTarget(ref common.Referen
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -787,7 +731,8 @@ func schema_pkg_apis_cluster_v1alpha1_VirtualClusterList(ref common.ReferenceCal
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.VirtualCluster"),
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1.VirtualCluster"),
 									},
 								},
 							},
@@ -1088,7 +1033,8 @@ func schema_pkg_apis_proxy_v1alpha1_ClusterGatewayConfigurationList(ref common.R
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/oam-dev/cluster-gateway/pkg/apis/proxy/v1alpha1.ClusterGatewayConfiguration"),
+										Default: map[string]interface{}{},
+										Ref:     ref("github.com/oam-dev/cluster-gateway/pkg/apis/proxy/v1alpha1.ClusterGatewayConfiguration"),
 									},
 								},
 							},
@@ -1169,7 +1115,8 @@ func schema_pkg_apis_proxy_v1alpha1_ClusterGatewayConfigurationStatus(ref common
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.Condition{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.Condition{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1413,7 +1360,8 @@ func schema_pkg_apis_meta_v1_APIGroup(ref common.ReferenceCallback) common.OpenA
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.GroupVersionForDiscovery{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.GroupVersionForDiscovery{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1438,7 +1386,8 @@ func schema_pkg_apis_meta_v1_APIGroup(ref common.ReferenceCallback) common.OpenA
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.ServerAddressByClientCIDR{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.ServerAddressByClientCIDR{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1486,7 +1435,8 @@ func schema_pkg_apis_meta_v1_APIGroupList(ref common.ReferenceCallback) common.O
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.APIGroup{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.APIGroup{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1561,8 +1511,9 @@ func schema_pkg_apis_meta_v1_APIResource(ref common.ReferenceCallback) common.Op
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -1580,8 +1531,9 @@ func schema_pkg_apis_meta_v1_APIResource(ref common.ReferenceCallback) common.Op
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -1599,8 +1551,9 @@ func schema_pkg_apis_meta_v1_APIResource(ref common.ReferenceCallback) common.Op
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -1661,7 +1614,8 @@ func schema_pkg_apis_meta_v1_APIResourceList(ref common.ReferenceCallback) commo
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.APIResource{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.APIResource{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1709,8 +1663,9 @@ func schema_pkg_apis_meta_v1_APIVersions(ref common.ReferenceCallback) common.Op
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -1728,7 +1683,8 @@ func schema_pkg_apis_meta_v1_APIVersions(ref common.ReferenceCallback) common.Op
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.ServerAddressByClientCIDR{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.ServerAddressByClientCIDR{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -1776,8 +1732,9 @@ func schema_pkg_apis_meta_v1_ApplyOptions(ref common.ReferenceCallback) common.O
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -1900,8 +1857,9 @@ func schema_pkg_apis_meta_v1_CreateOptions(ref common.ReferenceCallback) common.
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -1987,8 +1945,9 @@ func schema_pkg_apis_meta_v1_DeleteOptions(ref common.ReferenceCallback) common.
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -2056,8 +2015,9 @@ func schema_pkg_apis_meta_v1_FieldSelectorRequirement(ref common.ReferenceCallba
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -2340,8 +2300,9 @@ func schema_pkg_apis_meta_v1_LabelSelector(ref common.ReferenceCallback) common.
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -2359,7 +2320,8 @@ func schema_pkg_apis_meta_v1_LabelSelector(ref common.ReferenceCallback) common.
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.LabelSelectorRequirement{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.LabelSelectorRequirement{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -2413,8 +2375,9 @@ func schema_pkg_apis_meta_v1_LabelSelectorRequirement(ref common.ReferenceCallba
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -2772,8 +2735,9 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -2787,8 +2751,9 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -2811,7 +2776,8 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.OwnerReference{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.OwnerReference{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -2830,8 +2796,9 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -2849,7 +2816,8 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.ManagedFieldsEntry{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.ManagedFieldsEntry{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -2999,7 +2967,8 @@ func schema_pkg_apis_meta_v1_PartialObjectMetadataList(ref common.ReferenceCallb
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.PartialObjectMetadata{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.PartialObjectMetadata{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -3058,8 +3027,9 @@ func schema_pkg_apis_meta_v1_PatchOptions(ref common.ReferenceCallback) common.O
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -3138,8 +3108,9 @@ func schema_pkg_apis_meta_v1_RootPaths(ref common.ReferenceCallback) common.Open
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -3333,7 +3304,8 @@ func schema_pkg_apis_meta_v1_StatusDetails(ref common.ReferenceCallback) common.
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.StatusCause{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.StatusCause{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -3394,7 +3366,8 @@ func schema_pkg_apis_meta_v1_Table(ref common.ReferenceCallback) common.OpenAPID
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.TableColumnDefinition{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.TableColumnDefinition{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -3412,7 +3385,8 @@ func schema_pkg_apis_meta_v1_Table(ref common.ReferenceCallback) common.OpenAPID
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.TableRow{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.TableRow{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -3553,7 +3527,8 @@ func schema_pkg_apis_meta_v1_TableRow(ref common.ReferenceCallback) common.OpenA
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref(v1.TableRowCondition{}.OpenAPIModelName()),
+										Default: map[string]interface{}{},
+										Ref:     ref(v1.TableRowCondition{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -3720,8 +3695,9 @@ func schema_pkg_apis_meta_v1_UpdateOptions(ref common.ReferenceCallback) common.
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},

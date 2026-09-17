@@ -102,14 +102,21 @@ func newCommand() *cobra.Command {
 	codecs := serializer.NewCodecFactory(scheme.Scheme)
 	o := genericoptions.NewRecommendedOptions("", codecs.LegacyCodec(clusterv1alpha1.SchemeGroupVersion))
 
+	// cluster-gateway's resources are synthesized live from Secrets/OCM
+	// ManagedClusters rather than persisted, so no etcd storage is needed.
+	// Clear this before AddFlags so the etcd flags are never registered:
+	// otherwise they would be accepted and silently ignored.
+	o.Etcd = nil
+
 	cmd := &cobra.Command{
-		Use:   "cluster-gateway",
-		Short: "Launch the cluster-gateway aggregated apiserver",
+		Use:          "cluster-gateway",
+		Short:        "Launch the cluster-gateway aggregated apiserver",
+		SilenceUsage: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			return runServer(c.Context(), o)
 		},
 	}
-	cmd.SetContext(context.Background())
+	cmd.SetContext(genericapiserver.SetupSignalContext())
 
 	flags := cmd.Flags()
 	o.AddFlags(flags)
@@ -144,14 +151,17 @@ func runServer(ctx context.Context, o *genericoptions.RecommendedOptions) error 
 		return err
 	}
 
-	// cluster-gateway's resources are synthesized live from Secrets/OCM
-	// ManagedClusters rather than persisted, so no etcd storage is needed.
-	o.Etcd = nil
-	o.Authentication.RemoteKubeConfigFileOptional = true
 	if standaloneDebugMode {
 		if o.SecureServing.BindAddress.String() != "127.0.0.1" {
 			klog.Fatal(`--bind-address must be "127.0.0.1" if --standalone-debug-mode is set`)
 		}
+		// Keep delegated authentication, but make the remote kubeconfig
+		// optional, as sigs.k8s.io/apiserver-runtime's WithLocalDebugExtension
+		// did: requests without credentials then arrive as system:anonymous,
+		// so filters that expect a user on the request context (max-in-flight,
+		// APF) still work. Authorization and admission stay off for debugging,
+		// while a normal run without delegated config still fails to start.
+		o.Authentication.RemoteKubeConfigFileOptional = true
 		o.Authorization = nil
 		o.Admission = nil
 	}

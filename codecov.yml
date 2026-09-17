@@ -8,3 +8,6 @@ coverage:
         target: 70%
 ignore:
   - "hack/**"
+  - "pkg/generated/**"
+  - "pkg/apis/generated/**"
+  - "**/zz_generated.*.go"

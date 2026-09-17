@@ -18,15 +18,16 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"unsafe"
 
 	"github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 	"github.com/oam-dev/cluster-gateway/pkg/generated/clientset/versioned/scheme"
 	contextutil "github.com/oam-dev/cluster-gateway/pkg/util/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -45,18 +46,38 @@ type ClusterGatewayExpansion interface {
 }
 
 func (c *clusterGateways) RESTClient(clusterName string) rest.Interface {
-	restClient := c.client.(*rest.RESTClient)
-	// rest.RESTClient embeds a sync/atomic field, so it can't be copied via a
-	// plain struct assignment without tripping go vet's copylocks check. A raw
-	// byte copy is behaviorally identical (both are just a memcpy) but isn't
-	// flagged, since no Go value of the lock-containing type is ever assigned.
-	shallowCopiedClient := new(rest.RESTClient)
-	size := unsafe.Sizeof(*restClient)
-	copy(unsafe.Slice((*byte)(unsafe.Pointer(shallowCopiedClient)), size), unsafe.Slice((*byte)(unsafe.Pointer(restClient)), size))
-	shallowCopiedHTTPClient := *(restClient.Client)
-	shallowCopiedClient.Client = &shallowCopiedHTTPClient
-	shallowCopiedClient.Client.Transport = c.RoundTripperForCluster(clusterName)
-	return shallowCopiedClient
+	restClient := c.GetClient().(*rest.RESTClient)
+
+	// Rebuild the client with the public constructor instead of copying the
+	// struct: rest.RESTClient keeps mutable private state (an atomic.Bool
+	// tracking the CBOR fallback) that a shallow copy would read without
+	// atomic operations, and whose layout may change in any client-go bump.
+	base := restClient.Get().URL()
+	// Request.URL() already joins the client's base path with its versioned
+	// API path, so split the two again: the rebuilt client must resolve both
+	// regular requests (base path + versioned API path) and AbsPath (base path
+	// only) exactly like the original.
+	basePath := restClient.Get().AbsPath().URL().Path
+	versionedAPIPath := strings.TrimPrefix(base.Path, basePath)
+	base.Path = basePath
+
+	httpClient := *restClient.Client
+	httpClient.Transport = c.RoundTripperForCluster(clusterName)
+
+	groupVersion := restClient.APIVersion()
+	newClient, err := rest.NewRESTClient(base, versionedAPIPath, rest.ClientContentConfig{
+		GroupVersion: groupVersion,
+		// the codec setup mirrors the generated setConfigDefaults
+		Negotiator: runtime.NewClientNegotiator(
+			rest.CodecFactoryForGeneratedClient(scheme.Scheme, scheme.Codecs).WithoutConversion(),
+			groupVersion),
+	}, restClient.GetRateLimiter(), &httpClient)
+	if err != nil {
+		// unreachable: every input is taken from an already working client
+		klog.ErrorS(err, "failed to build the REST client for cluster", "cluster", clusterName)
+		return nil
+	}
+	return newClient
 }
 
 func (c *clusterGateways) RoundTripperForCluster(clusterName string) http.RoundTripper {
@@ -71,7 +92,7 @@ func (c *clusterGateways) GetKubernetesClient(clusterName string) kubernetes.Int
 
 func (c *clusterGateways) GetControllerRuntimeClient(clusterName string, options client.Options) (client.Client, error) {
 	return client.New(&rest.Config{
-		Host:          c.client.Verb("").URL().String(),
+		Host:          c.GetClient().Verb("").URL().String(),
 		WrapTransport: c.RoundTripperForClusterWrapperGenerator(clusterName),
 	}, options)
 }
@@ -91,7 +112,7 @@ func (c *clusterGateways) RoundTripperForClusterWrapperGenerator(clusterName str
 }
 
 func (c *clusterGateways) getRoundTripper(clusterNameGetter func(ctx context.Context) string) http.RoundTripper {
-	restClient := c.client.(*rest.RESTClient)
+	restClient := c.GetClient().(*rest.RESTClient)
 	return gatewayAPIPrefixPrepender{
 		clusterNameGetter: clusterNameGetter,
 		delegate:          restClient.Client.Transport,
@@ -122,7 +143,7 @@ func (p gatewayAPIPrefixPrepender) RoundTrip(req *http.Request) (*http.Response,
 
 func (c *clusterGateways) GetHealthiness(ctx context.Context, name string, options metav1.GetOptions) (*v1alpha1.ClusterGateway, error) {
 	result := &v1alpha1.ClusterGateway{}
-	err := c.client.Get().
+	err := c.GetClient().Get().
 		Resource("clustergateways").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -134,7 +155,7 @@ func (c *clusterGateways) GetHealthiness(ctx context.Context, name string, optio
 
 func (c *clusterGateways) UpdateHealthiness(ctx context.Context, clusterGateway *v1alpha1.ClusterGateway, options metav1.UpdateOptions) (*v1alpha1.ClusterGateway, error) {
 	result := &v1alpha1.ClusterGateway{}
-	err := c.client.Put().
+	err := c.GetClient().Put().
 		Resource("clustergateways").
 		Name(clusterGateway.Name).
 		VersionedParams(&options, scheme.ParameterCodec).
