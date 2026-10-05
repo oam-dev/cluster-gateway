@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/registry/rest"
 	ocmclusterv1 "open-cluster-management.io/api/cluster/v1"
-	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/oam-dev/cluster-gateway/pkg/common"
@@ -81,7 +81,8 @@ type VirtualClusterList struct {
 	Items []VirtualCluster `json:"items"`
 }
 
-var _ resource.Object = &VirtualCluster{}
+var _ rest.Storage = &VirtualCluster{}
+var _ rest.Scoper = &VirtualCluster{}
 
 // GetObjectMeta returns the object meta reference.
 func (in *VirtualCluster) GetObjectMeta() *metav1.ObjectMeta {

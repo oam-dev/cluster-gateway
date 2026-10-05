@@ -47,21 +47,24 @@ import (
 	registryrest "k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
-	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
-	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource/resourcerest"
-	contextutil "sigs.k8s.io/apiserver-runtime/pkg/util/context"
-	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
+
+	"github.com/oam-dev/cluster-gateway/pkg/util/loopback"
 )
 
-var _ resource.SubResource = &ClusterGatewayProxy{}
 var _ registryrest.Storage = &ClusterGatewayProxy{}
-var _ resourcerest.Connecter = &ClusterGatewayProxy{}
+var _ registryrest.Connecter = &ClusterGatewayProxy{}
 
 var proxyMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 
 // ClusterGatewayProxy is a subresource for ClusterGateway which allows user to proxy
-// kubernetes resource requests to the managed cluster.
+// kubernetes resource requests to the managed cluster. It is never itself
+// serialized on the wire: Connect proxies the raw HTTP request/response.
+//
+// +k8s:openapi-gen=false
 type ClusterGatewayProxy struct {
+	// Parent is the storage of the parent ClusterGateway resource, used to
+	// resolve the target cluster for a proxy request.
+	Parent registryrest.Getter
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -99,11 +102,10 @@ func (c *ClusterGatewayProxy) Connect(ctx context.Context, id string, options ru
 		return nil, fmt.Errorf("invalid options object: %#v", options)
 	}
 
-	parentStorage, ok := contextutil.GetParentStorageGetter(ctx)
-	if !ok {
+	if c.Parent == nil {
 		return nil, fmt.Errorf("no parent storage found")
 	}
-	parentObj, err := parentStorage.Get(ctx, id, &metav1.GetOptions{})
+	parentObj, err := c.Parent.Get(ctx, id, &metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("no such cluster %v", id)
 	}
@@ -176,8 +178,9 @@ func (c *ClusterGatewayProxy) ConnectMethods() []string {
 	return proxyMethods
 }
 
-var _ resource.QueryParameterObject = &ClusterGatewayProxyOptions{}
-
+// ConvertFromUrlValues decodes the proxy subresource's connect options from
+// the request's raw query values. Registered as a parameter conversion
+// function for ClusterGatewayProxyOptions in cmd/apiserver/main.go.
 func (in *ClusterGatewayProxyOptions) ConvertFromUrlValues(values *url.Values) error {
 	in.Path = values.Get("path")
 	in.Impersonate = values.Get("impersonate") == "true"

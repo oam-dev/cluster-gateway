@@ -23,7 +23,6 @@ import (
 	"k8s.io/component-base/featuregate"
 	k8stesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
-	contextutil "sigs.k8s.io/apiserver-runtime/pkg/util/context"
 )
 
 func TestProxyHandler(t *testing.T) {
@@ -161,10 +160,9 @@ func TestProxyHandler(t *testing.T) {
 			}
 
 			ctx := context.TODO()
-			ctx = contextutil.WithParentStorage(ctx, c.parent)
 			ctx = request.WithRequestInfo(ctx, &c.reqInfo)
 
-			gwProxy := &ClusterGatewayProxy{}
+			gwProxy := &ClusterGatewayProxy{Parent: c.parent}
 			handler, err := gwProxy.Connect(ctx, c.objName, c.inputOption, nil)
 			if c.expectedFailure {
 				if c.errorAssertFunc != nil {

@@ -21,8 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
-	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource/resourcestrategy"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/oam-dev/cluster-gateway/pkg/config"
 )
@@ -128,8 +127,8 @@ type X509 struct {
 	PrivateKey  []byte `json:"privateKey"`
 }
 
-var _ resource.Object = &ClusterGateway{}
-var _ resourcestrategy.Validater = &ClusterGateway{}
+var _ rest.Storage = &ClusterGateway{}
+var _ rest.Scoper = &ClusterGateway{}
 
 func (in *ClusterGateway) GetObjectMeta() *metav1.ObjectMeta {
 	return &in.ObjectMeta
@@ -170,8 +169,6 @@ func (in *ClusterGateway) GetSingularName() string {
 	return "clustergateway"
 }
 
-var _ resource.ObjectList = &ClusterGatewayList{}
-
 func (in *ClusterGatewayList) GetListMeta() *metav1.ListMeta {
 	return &in.ListMeta
 }
@@ -193,13 +190,4 @@ type ClusterGatewayStatus struct {
 	Healthy bool `json:"healthy"`
 	// HealthyReason is the reason explaining the cluster's healthiness.
 	HealthyReason HealthyReasonType `json:"healthyReason,omitempty"`
-}
-
-var _ resource.ObjectWithArbitrarySubResource = &ClusterGateway{}
-
-func (in *ClusterGateway) GetArbitrarySubResources() []resource.ArbitrarySubResource {
-	return []resource.ArbitrarySubResource{
-		&ClusterGatewayProxy{},
-		&ClusterGatewayHealth{},
-	}
 }

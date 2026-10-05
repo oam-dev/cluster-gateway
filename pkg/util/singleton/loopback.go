@@ -15,7 +15,6 @@ import (
 	ocmclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1Lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
-	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	controllerruntimeconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 	"github.com/oam-dev/cluster-gateway/pkg/util/cert"
 	clusterutil "github.com/oam-dev/cluster-gateway/pkg/util/cluster"
+	"github.com/oam-dev/cluster-gateway/pkg/util/loopback"
 	"github.com/oam-dev/cluster-gateway/pkg/util/scheme"
 )
 
@@ -82,7 +82,7 @@ func InitLoopbackClient(ctx server.PostStartHookContext) error {
 		return err
 	}
 	if utilfeature.DefaultMutableFeatureGate.Enabled(featuregates.SecretCache) {
-		if err := setInformer(kubeClient, ctx.StopCh); err != nil {
+		if err := setInformer(kubeClient, ctx.Done()); err != nil {
 			return err
 		}
 		secretControl = cert.NewCachedSecretControl(config.SecretNamespace, secretLister)
@@ -97,10 +97,11 @@ func InitLoopbackClient(ctx server.PostStartHookContext) error {
 			klog.Error(err)
 		} else if !installed {
 			klog.Infof("OCM ManagedCluster CRD not installed, skip bootstrapping informer for OCM ManagedCluster")
-		} else if err := setOCMClusterInformer(ocmClient, ctx.StopCh); err != nil {
+		} else if err := setOCMClusterInformer(ocmClient, ctx.Done()); err != nil {
 			return err
+		} else {
+			clusterControl = clusterutil.NewCacheOCMClusterControl(clusterLister)
 		}
-		clusterControl = clusterutil.NewCacheOCMClusterControl(clusterLister)
 	}
 	if clusterControl == nil {
 		clusterControl = clusterutil.NewDirectOCMClusterControl(ocmClient)
