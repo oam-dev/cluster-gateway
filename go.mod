@@ -28,7 +28,7 @@ require (
 	sigs.k8s.io/apiserver-network-proxy v0.31.4
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.3
 	sigs.k8s.io/controller-runtime v0.23.3
-	sigs.k8s.io/controller-tools v0.16.5
+	sigs.k8s.io/controller-tools v0.17.3
 )
 
 require (
