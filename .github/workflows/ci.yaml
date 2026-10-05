@@ -68,10 +68,11 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: cover.out
+          files: cover.out
           flags: unit-test
           name: codecov-umbrella
-          fail_ci_if_error: true
+          fail_ci_if_error: false
+          use_pypi: true
           verbose: true
       - name: Run Make
         run: make
