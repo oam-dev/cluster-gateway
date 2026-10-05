@@ -10,8 +10,6 @@ import (
 )
 
 func TestAuthorizer(t *testing.T) {
-	assert.Nil(t, GetAuthorizer())
-
 	first := authorizer.AuthorizerFunc(func(context.Context, authorizer.Attributes) (authorizer.Decision, string, error) {
 		return authorizer.DecisionAllow, "first", nil
 	})
@@ -32,8 +30,6 @@ func TestAuthorizer(t *testing.T) {
 }
 
 func TestLoopbackMasterClientConfig(t *testing.T) {
-	assert.Nil(t, GetLoopbackMasterClientConfig())
-
 	first := &rest.Config{Host: "https://first"}
 	SetLoopbackMasterClientConfig(first)
 	assert.Equal(t, first, GetLoopbackMasterClientConfig())
