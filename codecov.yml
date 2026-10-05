@@ -8,6 +8,8 @@ coverage:
         target: 70%
 ignore:
   - "hack/**"
-  - "pkg/generated/**"
   - "pkg/apis/generated/**"
   - "**/zz_generated.*.go"
+  - "pkg/generated/clientset/versioned/clientset.go"
+  - "pkg/generated/clientset/versioned/typed/cluster/v1alpha1/cluster_client.go"
+  - "pkg/generated/clientset/versioned/typed/cluster/v1alpha1/clustergateway.go"

@@ -18,8 +18,9 @@ var _ rest.Updater = &ClusterGatewayHealth{}
 
 // ClusterGatewayHealth is a subresource for ClusterGateway which allows
 // updating and reading the health status of the managed cluster. It is
-// never itself serialized on the wire: Get/Update always return the
-// underlying *ClusterGateway obtained through Parent.
+// never itself serialized on the wire: Get resolves through Parent storage,
+// while Update persists health annotations into the backing Secret and
+// returns the converted *ClusterGateway from that updated Secret.
 //
 // +k8s:openapi-gen=false
 type ClusterGatewayHealth struct {
