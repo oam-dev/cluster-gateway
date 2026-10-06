@@ -9,11 +9,16 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// unconditionalOnly implements only Authorize, matching the
+// authorizer.UnconditionalAuthorizer that GenericAPIServer exposes.
+type unconditionalOnly struct{ reason string }
+
+func (u unconditionalOnly) Authorize(context.Context, authorizer.Attributes) (authorizer.Decision, string, error) {
+	return authorizer.DecisionAllow, u.reason, nil
+}
+
 func TestAuthorizer(t *testing.T) {
-	first := authorizer.AuthorizerFunc(func(context.Context, authorizer.Attributes) (authorizer.Decision, string, error) {
-		return authorizer.DecisionAllow, "first", nil
-	})
-	SetAuthorizer(first)
+	SetAuthorizer(unconditionalOnly{reason: "first"})
 	decision, reason, err := GetAuthorizer().Authorize(context.TODO(), nil)
 	assert.NoError(t, err)
 	assert.Equal(t, authorizer.DecisionAllow, decision)
