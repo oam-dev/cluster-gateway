@@ -26,6 +26,8 @@ rules:
       - validatingwebhookconfigurations
       - validatingadmissionpolicies
       - validatingadmissionpolicybindings
+      - mutatingadmissionpolicies
+      - mutatingadmissionpolicybindings
     verbs:
       - get
       - list
