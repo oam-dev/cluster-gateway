@@ -120,6 +120,10 @@ func newCommand() *cobra.Command {
 
 	flags := cmd.Flags()
 	o.AddFlags(flags)
+	// k3s/k3d clusters can run without the MutatingAdmissionPolicy API.
+	// Keep cluster-gateway compatible by disabling the related admission plugin
+	// unless explicitly re-enabled via command flags.
+	o.Admission.DisablePlugins = append(o.Admission.DisablePlugins, "MutatingAdmissionPolicy")
 	utilfeature.DefaultMutableFeatureGate.AddFlag(flags)
 	flags.BoolVar(&standaloneDebugMode, "standalone-debug-mode", false,
 		"Under the local-debug mode the apiserver will allow all access to its resources without "+
