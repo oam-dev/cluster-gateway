@@ -238,6 +238,11 @@ func (p *proxyHandler) ServeHTTP(_writer http.ResponseWriter, request *http.Requ
 	// to deep copy here
 	newReq := request.Clone(request.Context())
 	newReq.Header = utilnet.CloneHeader(request.Header)
+	// The selected ClusterGateway credential must be the only authentication
+	// material forwarded to the managed cluster. Leaving the caller's header in
+	// place prevents the client-go bearer-token wrapper from applying the
+	// configured credential.
+	newReq.Header.Del("Authorization")
 	newReq.URL.Path = p.path
 
 	urlAddr, err := GetEndpointURL(cluster)
