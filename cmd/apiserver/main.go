@@ -113,6 +113,9 @@ func newCommand() *cobra.Command {
 		Short:        "Launch the cluster-gateway aggregated apiserver",
 		SilenceUsage: true,
 		RunE: func(c *cobra.Command, args []string) error {
+			// Enforce compatibility after flag parsing: users can still opt-in by
+			// explicitly enabling MutatingAdmissionPolicy.
+			ensureMutatingAdmissionPolicyDisabledByDefault(o)
 			return runServer(c.Context(), o)
 		},
 	}
@@ -138,6 +141,20 @@ func newCommand() *cobra.Command {
 			"cluster.")
 
 	return cmd
+}
+
+func ensureMutatingAdmissionPolicyDisabledByDefault(o *genericoptions.RecommendedOptions) {
+	const mutatingAdmissionPolicyPlugin = "MutatingAdmissionPolicy"
+	if o == nil || o.Admission == nil {
+		return
+	}
+	if sets.NewString(o.Admission.EnablePlugins...).Has(mutatingAdmissionPolicyPlugin) {
+		return
+	}
+	if sets.NewString(o.Admission.DisablePlugins...).Has(mutatingAdmissionPolicyPlugin) {
+		return
+	}
+	o.Admission.DisablePlugins = append(o.Admission.DisablePlugins, mutatingAdmissionPolicyPlugin)
 }
 
 func runServer(ctx context.Context, o *genericoptions.RecommendedOptions) error {
@@ -208,7 +225,7 @@ func runServer(ctx context.Context, o *genericoptions.RecommendedOptions) error 
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(config.MetaApiGroupName, scheme.Scheme, parameterCodec, codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[config.MetaApiVersionName] = map[string]rest.Storage{
-		config.MetaApiResourceName:            clusterGatewayStorage,
+		config.MetaApiResourceName:             clusterGatewayStorage,
 		config.MetaApiResourceName + "/proxy":  proxyStorage,
 		config.MetaApiResourceName + "/health": healthStorage,
 		"virtualclusters":                      &clusterv1alpha1.VirtualCluster{},

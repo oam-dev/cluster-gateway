@@ -75,7 +75,7 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.17.3 ;\
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.22.0 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -90,7 +90,7 @@ ifeq (, $(shell which openapi-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go install k8s.io/kube-openapi/cmd/openapi-gen@v0.0.0-20250910181357-589584f1c912 ;\
+	go install k8s.io/kube-openapi/cmd/openapi-gen@v0.0.0-20260721132016-d427ff9ee9ad ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 OPENAPI_GEN=$(GOBIN)/openapi-gen
@@ -115,7 +115,7 @@ endif
 
 
 client-gen:
-	go install k8s.io/code-generator/cmd/client-gen@v0.35.6
+	go install k8s.io/code-generator/cmd/client-gen@v0.37.1
 	$(GOBIN)/client-gen \
 		--go-header-file=hack/boilerplate.go.txt \
 		--clientset-name=versioned \

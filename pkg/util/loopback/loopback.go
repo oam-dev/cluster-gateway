@@ -13,21 +13,21 @@ import (
 
 var (
 	authzOnce sync.Once
-	authz     authorizer.Authorizer
+	authz     authorizer.UnconditionalAuthorizer
 
 	masterClientConfigOnce sync.Once
 	masterClientConfig     *rest.Config
 )
 
 // SetAuthorizer provides the loopback authorizer, once.
-func SetAuthorizer(a authorizer.Authorizer) {
+func SetAuthorizer(a authorizer.UnconditionalAuthorizer) {
 	authzOnce.Do(func() {
 		authz = a
 	})
 }
 
 // GetAuthorizer returns the loopback authorizer performing delegated authorization.
-func GetAuthorizer() authorizer.Authorizer {
+func GetAuthorizer() authorizer.UnconditionalAuthorizer {
 	return authz
 }
 
