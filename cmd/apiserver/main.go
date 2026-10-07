@@ -113,6 +113,9 @@ func newCommand() *cobra.Command {
 		Short:        "Launch the cluster-gateway aggregated apiserver",
 		SilenceUsage: true,
 		RunE: func(c *cobra.Command, args []string) error {
+			// Enforce compatibility after flag parsing: users can still opt-in by
+			// explicitly enabling MutatingAdmissionPolicy.
+			ensureMutatingAdmissionPolicyDisabledByDefault(o)
 			return runServer(c.Context(), o)
 		},
 	}
@@ -120,10 +123,6 @@ func newCommand() *cobra.Command {
 
 	flags := cmd.Flags()
 	o.AddFlags(flags)
-	// k3s/k3d clusters can run without the MutatingAdmissionPolicy API.
-	// Keep cluster-gateway compatible by disabling the related admission plugin
-	// unless explicitly re-enabled via command flags.
-	o.Admission.DisablePlugins = append(o.Admission.DisablePlugins, "MutatingAdmissionPolicy")
 	utilfeature.DefaultMutableFeatureGate.AddFlag(flags)
 	flags.BoolVar(&standaloneDebugMode, "standalone-debug-mode", false,
 		"Under the local-debug mode the apiserver will allow all access to its resources without "+
@@ -142,6 +141,20 @@ func newCommand() *cobra.Command {
 			"cluster.")
 
 	return cmd
+}
+
+func ensureMutatingAdmissionPolicyDisabledByDefault(o *genericoptions.RecommendedOptions) {
+	const mutatingAdmissionPolicyPlugin = "MutatingAdmissionPolicy"
+	if o == nil || o.Admission == nil {
+		return
+	}
+	if sets.NewString(o.Admission.EnablePlugins...).Has(mutatingAdmissionPolicyPlugin) {
+		return
+	}
+	if sets.NewString(o.Admission.DisablePlugins...).Has(mutatingAdmissionPolicyPlugin) {
+		return
+	}
+	o.Admission.DisablePlugins = append(o.Admission.DisablePlugins, mutatingAdmissionPolicyPlugin)
 }
 
 func runServer(ctx context.Context, o *genericoptions.RecommendedOptions) error {
