@@ -47,3 +47,12 @@ rules:
       - subjectaccessreviews
     verbs:
       - "*"
+  - apiGroups:
+      - apiregistration.k8s.io
+    resources:
+      - apiservices
+    resourceNames:
+      - v1alpha1.cluster.core.oam.dev
+    verbs:
+      - get
+      - update

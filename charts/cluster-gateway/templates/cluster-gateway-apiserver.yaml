@@ -41,7 +41,10 @@ spec:
             {{ end }}
             {{ end }}
             - --feature-gates={{ if .Values.featureGate.healthiness }}HealthinessCheck=true,{{ end }}{{ if .Values.featureGate.secretCache }}SecretCache=true,{{ end }}
-            # TODO: certificate rotation, otherwise the self-signed will expire in 1 year
+            {{- if and .Values.tls .Values.tls.autoGenerateCert }}
+            - --cluster-gateway-tls-secret={{ .Values.secretNamespace }}/{{ .Values.tls.secretName | default "cluster-gateway-tls" }}
+            - --cluster-gateway-service={{ .Release.Namespace }}/gateway-service
+            {{- end }}
           {{ if .Values.ocmIntegration.clusterProxy.enabled }}
           volumeMounts:
             - name: proxy-client

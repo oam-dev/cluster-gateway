@@ -19,3 +19,8 @@ ocmIntegration:
 featureGate:
   healthiness: false
   secretCache: false
+
+tls:
+  autoGenerateCert: true
+  # Bare secret name (not namespaced). The secret is created in secretNamespace.
+  secretName: cluster-gateway-tls

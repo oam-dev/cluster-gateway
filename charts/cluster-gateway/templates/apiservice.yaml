@@ -14,4 +14,22 @@ spec:
     namespace:  {{ .Release.Namespace }}
     port: 9443
   versionPriority: 10
+  {{- $apiSvc := (lookup "apiregistration.k8s.io/v1" "APIService" "" "v1alpha1.cluster.core.oam.dev") }}
+  {{- $caBundle := dig "spec" "caBundle" "" $apiSvc }}
+  {{- if eq $caBundle "Cg==" }}{{ $caBundle = "" }}{{ end }}
+  {{- $hasCertManager := or (dig "metadata" "annotations" "cert-manager.io/inject-ca-from" "" $apiSvc) (dig "metadata" "annotations" "cert-manager.io/inject-ca-from-secret" "" $apiSvc) (dig "metadata" "annotations" "cert-manager.io/inject-apiserver-ca" "" $apiSvc) }}
+  {{- if $hasCertManager }}
+  insecureSkipTLSVerify: false
+  {{- if $caBundle }}
+  caBundle: {{ $caBundle }}
+  {{- end }}
+  {{- else if and .Values.tls .Values.tls.autoGenerateCert }}
+  {{- if $caBundle }}
+  insecureSkipTLSVerify: false
+  caBundle: {{ $caBundle }}
+  {{- else }}
   insecureSkipTLSVerify: true
+  {{- end }}
+  {{- else }}
+  insecureSkipTLSVerify: true
+  {{- end }}
