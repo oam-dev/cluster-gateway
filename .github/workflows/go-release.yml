@@ -59,12 +59,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+      # The cluster-gateway image is published by build-image.yml (Docker Hub and
+      # GHCR, one multi-arch build); this workflow only publishes the addon-manager.
       - name: images multi arch
         run: |
           IMG_TAG=${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }} \
           OS=linux \
           ARCH=${{ matrix.arch }} \
-            make image
+            make ocm-addon-manager
       - name: Login docker.io
         uses: docker/login-action@v3
         with:
@@ -73,7 +75,6 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: push image multi arch
         run: |
-          docker push oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
           docker push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
   image-manifest:
     name: image-manifest
@@ -94,25 +95,17 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: create
         run: |
-          docker manifest create oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }} \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-arm64
           docker manifest create oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }} \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-arm64
       - name: annotate
         run: |
-          docker manifest annotate oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }} \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 --arch amd64
-          docker manifest annotate oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }} \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-arm64 --arch arm64
           docker manifest annotate oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }} \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 --arch amd64
           docker manifest annotate oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }} \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-arm64 --arch arm64
       - name: push
         run: |
-          docker manifest push oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}
           docker manifest push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}
   release:
     name: release
