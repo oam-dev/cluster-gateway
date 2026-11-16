@@ -16,6 +16,13 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Allow manual runs only on master and release branches
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ ${GITHUB_REF} != "refs/heads/master" && ${GITHUB_REF} != refs/heads/release-* ]]; then
+            echo "::error::Manual runs are only allowed on master or a release-* branch, not ${GITHUB_REF}"
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@v3
       - name: Docker meta
