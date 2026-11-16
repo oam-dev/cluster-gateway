@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +52,7 @@ import (
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 	"github.com/oam-dev/cluster-gateway/pkg/apis/generated"
 
-	_ "github.com/oam-dev/cluster-gateway/pkg/featuregates"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 )
 
 // standaloneDebugMode allows the apiserver to be run locally without
@@ -88,6 +89,8 @@ func init() {
 }
 
 func main() {
+	// before the flags are parsed: a removed feature gate would make the apiserver exit
+	os.Args = featuregates.TranslateRemovedGates(os.Args)
 
 	// registering metrics
 	metrics.Register()
