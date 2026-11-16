@@ -25,15 +25,14 @@ jobs:
           images: |
             oamdev/cluster-gateway
             ghcr.io/oam-dev/cluster-gateway
-          # `latest` is the newest master build (the raw tag below). Without this,
-          # metadata-action also adds `latest` for every tag (`latest=auto` with
-          # `type=ref,event=tag`), so a tag on a release branch would move it.
+          # Without this, metadata-action adds `latest` for every tag (`latest=auto` with
+          # `type=ref,event=tag`), so the last tag pushed on any branch moved it. `latest`
+          # is set after the push instead (the last step).
           flavor: |
             latest=false
           tags: |
             type=ref,event=branch
             type=ref,event=tag
-            type=raw,value=latest,enable={{is_default_branch}}
       - name: Login docker.io
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
         with:
@@ -51,6 +50,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -61,3 +61,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # `latest` is the newest release: only a tag vX.Y.Z (no pre-release suffix) that is the
+      # highest of all such tags moves it. A patch on an older line (v1.9.3 after v1.10.0) or an
+      # alpha doesn't, and neither do branch pushes. The check runs after the push, so a build
+      # that finishes after a newer tag was pushed doesn't move `latest` back.
+      - name: Tag latest if this is the newest release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          newest=$(git ls-remote --tags --refs origin 'v*' | sed 's|.*refs/tags/||' |
+            { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } | sort -V | tail -n1)
+          if [[ ! ${TAG} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ || ${TAG} != "${newest}" ]]; then
+            echo "Tag ${TAG}, newest release ${newest:-none}: latest not moved"
+            exit 0
+          fi
+          while read -r ref; do
+            image=${ref%:*}
+            docker buildx imagetools create --tag "${image}:latest" "${image}@${DIGEST}"
+            echo "${image}:latest -> ${DIGEST}"
+          done <<<"${IMAGE_TAGS}"
