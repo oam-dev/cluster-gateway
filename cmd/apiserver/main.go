@@ -16,6 +16,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -33,10 +34,12 @@ import (
 	clusterv1alpha1 "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
 	"github.com/oam-dev/cluster-gateway/pkg/apis/generated"
 
-	_ "github.com/oam-dev/cluster-gateway/pkg/featuregates"
+	"github.com/oam-dev/cluster-gateway/pkg/featuregates"
 )
 
 func main() {
+	// before the flags are parsed: a removed feature gate would make the apiserver exit
+	os.Args = featuregates.TranslateRemovedGates(os.Args)
 
 	// registering metrics
 	metrics.Register()
