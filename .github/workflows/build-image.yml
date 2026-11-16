@@ -25,6 +25,11 @@ jobs:
           images: |
             oamdev/cluster-gateway
             ghcr.io/oam-dev/cluster-gateway
+          # `latest` is the newest master build (the raw tag below). Without this,
+          # metadata-action also adds `latest` for every tag (`latest=auto` with
+          # `type=ref,event=tag`), so a tag on a release branch would move it.
+          flavor: |
+            latest=false
           tags: |
             type=ref,event=branch
             type=ref,event=tag
