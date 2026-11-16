@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - master
+      - release-*
   workflow_dispatch: {}
   pull_request:
     branches:
       - master
+      - release-*
 
 env:
   # Common versions
@@ -71,8 +73,9 @@ jobs:
           files: cover.out
           flags: unit-test
           name: codecov-umbrella
-          fail_ci_if_error: false
-          use_pypi: true
+          # Fork PRs do not receive repository secrets; keep Codecov upload failures
+          # non-blocking when no token is available.
+          fail_ci_if_error: ${{ secrets.CODECOV_TOKEN != '' }}
           verbose: true
       - name: Run Make
         run: make
