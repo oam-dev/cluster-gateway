@@ -30,8 +30,11 @@ jobs:
           # is set after the push instead (the last step).
           flavor: |
             latest=false
+          # A branch build gets the moving `<branch>` tag and an immutable `<branch>-<sha>`
+          # (a candidate that can be scanned and tested before a release is tagged).
           tags: |
             type=ref,event=branch
+            type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads/') }}
             type=ref,event=tag
       - name: Login docker.io
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
