@@ -121,6 +121,22 @@ jobs:
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
+      # build-image.yml publishes the cluster-gateway image for this tag in its own run;
+      # don't publish the release (and its charts) before that image exists.
+      - name: wait for the cluster-gateway image
+        env:
+          IMAGE: oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}
+        run: |
+          for i in $(seq 1 60); do
+            if docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
+              echo "${IMAGE} is published"
+              exit 0
+            fi
+            echo "waiting for ${IMAGE} (${i}/60)"
+            sleep 30
+          done
+          echo "::error::${IMAGE} was not published within 30 minutes"
+          exit 1
       - name: setup helm
         uses: azure/setup-helm@v1
       - name: chart package
