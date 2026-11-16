@@ -15,6 +15,7 @@ limitations under the License.
 package featuregates
 
 import (
+	"strconv"
 	"strings"
 
 	"k8s.io/klog/v2"
@@ -78,7 +79,9 @@ func TranslateRemovedGates(args []string) []string {
 }
 
 // dropRemovedGate removes the removed gate from a --feature-gates value ("A=true,B=false", where a
-// key may carry a component prefix such as "kube:") and returns the remaining value and the gate's.
+// key may carry a component prefix such as "kube:") and returns the remaining value and the gate's
+// value. Only a gate with a boolean value is removed: anything else (no value, "maybe") is kept, so
+// the feature-gate parser rejects it as before.
 func dropRemovedGate(gates string) (kept string, value string, found bool) {
 	var keep []string
 	for _, kv := range strings.Split(gates, ",") {
@@ -86,8 +89,8 @@ func dropRemovedGate(gates string) (kept string, value string, found bool) {
 		if i := strings.LastIndex(key, ":"); i >= 0 {
 			key = key[i+1:]
 		}
-		if key == removedAPFGate {
-			value, found = strings.TrimSpace(v), true
+		if b, err := strconv.ParseBool(strings.TrimSpace(v)); key == removedAPFGate && err == nil {
+			value, found = strconv.FormatBool(b), true
 			continue
 		}
 		if strings.TrimSpace(kv) != "" {

@@ -66,6 +66,31 @@ func TestTranslateRemovedGates(t *testing.T) {
 			in:   []string{"cluster-gateway", "--feature-gates"},
 			want: []string{"cluster-gateway", "--feature-gates"},
 		},
+		{
+			name: "the gate without a value: kept for the parser to reject",
+			in:   []string{"cluster-gateway", "--feature-gates=APIPriorityAndFairness,ClientIdentityPenetration=true"},
+			want: []string{"cluster-gateway", "--feature-gates=APIPriorityAndFairness,ClientIdentityPenetration=true"},
+		},
+		{
+			name: "the gate with an empty value: kept",
+			in:   []string{"cluster-gateway", "--feature-gates=APIPriorityAndFairness="},
+			want: []string{"cluster-gateway", "--feature-gates=APIPriorityAndFairness="},
+		},
+		{
+			name: "the gate with a value that isn't a bool: kept",
+			in:   []string{"cluster-gateway", "--feature-gates=APIPriorityAndFairness=maybe"},
+			want: []string{"cluster-gateway", "--feature-gates=APIPriorityAndFairness=maybe"},
+		},
+		{
+			name: "a bool value in another spelling is normalized",
+			in:   []string{"cluster-gateway", "--feature-gates=APIPriorityAndFairness=False"},
+			want: []string{"cluster-gateway", "--enable-priority-and-fairness=false"},
+		},
+		{
+			name: "like pflag, a non-bool flag without = takes the next arg as its value",
+			in:   []string{"cluster-gateway", "--feature-gates", "--secure-port=9443"},
+			want: []string{"cluster-gateway", "--feature-gates=--secure-port=9443"},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
