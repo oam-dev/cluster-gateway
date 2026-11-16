@@ -73,7 +73,9 @@ jobs:
           files: cover.out
           flags: unit-test
           name: codecov-umbrella
-          fail_ci_if_error: false
+          # Fail on upload errors when there is a token (pushes, same-repo PRs); PRs from
+          # forks get no secrets, so their uploads fail and mustn't fail the run.
+          fail_ci_if_error: ${{ secrets.CODECOV_TOKEN != '' }}
           use_pypi: true
           verbose: true
       - name: Run Make
