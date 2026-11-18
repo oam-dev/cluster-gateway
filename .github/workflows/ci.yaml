@@ -57,8 +57,10 @@ jobs:
           restore-keys: ${{ runner.os }}-pkg-
       - name: install Kubebuilder
         run: |
-          # Install setup-envtest for managing test binaries
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          # Install setup-envtest for managing test binaries: the release branch of the controller-runtime
+          # in go.mod, which builds with this Go (setup-go runs with GOTOOLCHAIN=local, so @latest, which
+          # needs a newer Go, would fail)
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.25
           
           # Setup the test environment with the correct Kubernetes version
           export KUBEBUILDER_ASSETS=$(setup-envtest use 1.37.x --print path --bin-dir ~/.local/bin)
