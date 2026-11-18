@@ -32,12 +32,6 @@ jobs:
         run: |
           echo "MAJOR_RELEASE_VERSION=${RELEASE_VERSION%.*}" >> $GITHUB_ENV
           echo "TRIMED_RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
-      - name: verify chart version
-        run: |
-          sed -i 's/version: 0.1.0/version: ${{ env.TRIMED_RELEASE_VERSION }}/g' ./charts/cluster-gateway/Chart.yaml
-          sed -i 's/version: 0.1.0/version: ${{ env.TRIMED_RELEASE_VERSION }}/g' ./charts/addon-manager/Chart.yaml
-          cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
-          cat ./charts/addon-manager/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
     outputs:
       RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
       TRIMED_RELEASE_VERSION: ${{ env.TRIMED_RELEASE_VERSION }}
@@ -146,6 +140,17 @@ jobs:
           exit 1
       - name: setup helm
         uses: azure/setup-helm@v1
+      # The charts are versioned 0.1.0 in the repository; package them with the tag's version, so a
+      # chart's default image (v<chart version>) is this release's image. This must run in the job
+      # that packages: each job has its own checkout.
+      - name: set the chart versions
+        env:
+          CHART_VERSION: ${{ needs.env.outputs.TRIMED_RELEASE_VERSION }}
+        run: |
+          for chart in ./charts/cluster-gateway ./charts/addon-manager; do
+            sed -i "s/^version: 0.1.0$/version: ${CHART_VERSION}/" "${chart}/Chart.yaml"
+            grep -qx "version: ${CHART_VERSION}" "${chart}/Chart.yaml"
+          done
       - name: chart package
         run: |
           if [ ! -d release ]; then
