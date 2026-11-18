@@ -18,10 +18,10 @@ defaults:
 jobs:
   env:
     name: prepare release env
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
@@ -37,7 +37,7 @@ jobs:
       TRIMED_RELEASE_VERSION: ${{ env.TRIMED_RELEASE_VERSION }}
   image-multi-arch:
     name: multi arch image build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ env ]
     env:
       # Plain per-arch images: with buildx's default provenance attestation each tag is
@@ -48,13 +48,13 @@ jobs:
         arch: [ amd64, arm64 ]
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
           clean: true
       - name: install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
       # The cluster-gateway image is published by build-image.yml (Docker Hub and
@@ -66,7 +66,7 @@ jobs:
           ARCH=${{ matrix.arch }} \
             make ocm-addon-manager
       - name: Login docker.io
-        uses: docker/login-action@v3
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKER_USER }}
@@ -76,17 +76,17 @@ jobs:
           docker push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
   image-manifest:
     name: image-manifest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ env, image-multi-arch ]
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
           clean: 'true'
       - name: Login docker.io
-        uses: docker/login-action@v3
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKER_USER }}
@@ -107,17 +107,17 @@ jobs:
           docker manifest push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}
   release:
     name: release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ env, image-manifest ]
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
       # Authenticated, so polling below isn't limited by Docker Hub's anonymous rate limit.
       - name: Login docker.io
-        uses: docker/login-action@v3
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKER_USER }}
@@ -139,7 +139,7 @@ jobs:
           echo "::error::${IMAGE} was not published within 30 minutes"
           exit 1
       - name: setup helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
       # The charts are versioned 0.1.0 in the repository; package them with the tag's version, so a
       # chart's default image (v<chart version>) is this release's image. This must run in the job
       # that packages: each job has its own checkout.
@@ -161,7 +161,7 @@ jobs:
           helm package ../charts/addon-manager/
           popd
       - name: publish release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
           tag: ${{ needs.env.outputs.RELEASE_VERSION }}
           artifacts: "go/src/oamdev/cluster-gateway/release/*.tgz"
