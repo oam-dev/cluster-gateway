@@ -160,6 +160,25 @@ jobs:
           helm package ../charts/cluster-gateway/
           helm package ../charts/addon-manager/
           popd
+      # A tag with a pre-release suffix (v1.10.0-alpha.1) is published as a pre-release. Only the
+      # highest vX.Y.Z is marked Latest, as for the image's `latest` (build-image.yml): otherwise
+      # GitHub picks the release created last, so an alpha or a patch on an older line (v1.9.3 after
+      # v1.10.0) would become Latest.
+      - name: decide pre-release and Latest
+        id: kind
+        env:
+          TAG: ${{ needs.env.outputs.RELEASE_VERSION }}
+        run: |
+          set -euo pipefail
+          prerelease=false
+          if [[ ${TAG} == *-* ]]; then prerelease=true; fi
+          newest=$(git ls-remote --tags --refs origin 'v*' | sed 's|.*refs/tags/||' |
+            { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } | sort -V | tail -n1)
+          latest=false
+          if [[ ${TAG} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ && ${TAG} == "${newest}" ]]; then latest=true; fi
+          echo "Tag ${TAG}, newest release ${newest:-none}: prerelease=${prerelease}, Latest=${latest}"
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
+          echo "latest=${latest}" >> "${GITHUB_OUTPUT}"
       - name: publish release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
@@ -167,6 +186,8 @@ jobs:
           artifacts: "go/src/oamdev/cluster-gateway/release/*.tgz"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
+          prerelease: ${{ steps.kind.outputs.prerelease }}
+          makeLatest: ${{ steps.kind.outputs.latest }}
 #      lack secrets.PAT_TOKEN from ocm, commented now
 #      - name: submit charts to OCM chart repo
 #        uses: actions/github-script@v6
