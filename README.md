@@ -31,8 +31,19 @@ api-gateway solution:
 ## Image
 
 ```shell
-$ docker pull oamdev/cluster-gateway:v1.1.12 # Or other newer tags
+$ docker pull oamdev/cluster-gateway:v1.9.2 # or the release your KubeVela line uses (below)
 ```
+
+Images are also published to `ghcr.io/oam-dev/cluster-gateway`, for `linux/amd64` and `linux/arm64`.
+
+## Releases
+
+| KubeVela | cluster-gateway branch | Release |
+| --- | --- | --- |
+| `master`, 1.12 | `release-1.10` | `v1.10.0-alpha.1` |
+| 1.10, 1.11 | `release-1.9` | `v1.9.2` |
+
+[RELEASE.md](RELEASE.md) describes the branches, backports, what each workflow publishes, and how to make a release.
 
 ## Documentation
 
