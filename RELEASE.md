@@ -47,8 +47,8 @@ base images (new digests and patch versions only).
 - creates the GitHub Release with the `cluster-gateway` and `addon-manager` charts at version `X.Y.Z`. A tag with a
   `-` (`-alpha.1`, `-rc.1`) is a pre-release; only the highest final release is marked Latest.
 
-[CI](.github/workflows/ci.yaml) runs the unit tests and the e2e tests on every pull request and push to `master` and
-`release-*`.
+[CI](.github/workflows/ci.yaml) runs the unit tests and the e2e tests on every push to `master` and `release-*`, and on
+pull requests to them unless they change only docs (Markdown, images).
 
 ## Making a release
 
