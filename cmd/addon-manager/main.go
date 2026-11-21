@@ -47,6 +47,11 @@ func main() {
 	logger := klogr.New()
 	klog.SetOutput(os.Stdout)
 	klog.InitFlags(flag.CommandLine)
+	// Opt into the new klog behavior so that -stderrthreshold is honored even
+	// when -logtostderr=true (the default).
+	// Ref: kubernetes/klog#212, kubernetes/klog#432
+	flag.CommandLine.Set("legacy_stderr_threshold_behavior", "false") //nolint:errcheck
+	flag.CommandLine.Set("stderrthreshold", "INFO")                   //nolint:errcheck
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":48080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":48081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
