@@ -46,6 +46,7 @@ import (
 	"github.com/oam-dev/cluster-gateway/pkg/options"
 	"github.com/oam-dev/cluster-gateway/pkg/util/loopback"
 	"github.com/oam-dev/cluster-gateway/pkg/util/scheme"
+	"github.com/oam-dev/cluster-gateway/pkg/util/servingcert"
 	"github.com/oam-dev/cluster-gateway/pkg/util/singleton"
 
 	// +kubebuilder:scaffold:resource-imports
@@ -134,6 +135,7 @@ func newCommand() *cobra.Command {
 
 	config.AddLogFlags(flags)
 	config.AddSecretFlags(flags)
+	config.AddServingCertFlags(flags)
 	config.AddVirtualClusterFlags(flags)
 	config.AddClusterProxyFlags(flags)
 	config.AddProxyAuthorizationFlags(flags)
@@ -167,6 +169,9 @@ func runServer(ctx context.Context, o *genericoptions.RecommendedOptions) error 
 	if err := config.ValidateClusterProxy(); err != nil {
 		return err
 	}
+	if err := config.ValidateServingCert(); err != nil {
+		return err
+	}
 	if err := clusterv1alpha1.LoadGlobalClusterGatewayProxyConfig(); err != nil {
 		return err
 	}
@@ -184,6 +189,10 @@ func runServer(ctx context.Context, o *genericoptions.RecommendedOptions) error 
 		o.Authentication.RemoteKubeConfigFileOptional = true
 		o.Authorization = nil
 		o.Admission = nil
+	}
+
+	if err := servingcert.Prepare(ctx, o); err != nil {
+		return err
 	}
 
 	if err := o.SecureServing.MaybeDefaultWithSelfSignedCerts(
@@ -241,6 +250,10 @@ func runServer(ctx context.Context, o *genericoptions.RecommendedOptions) error 
 	loopback.SetAuthorizer(genericServer.Authorizer)
 
 	if err := genericServer.AddPostStartHook("init-master-loopback-client", singleton.InitLoopbackClient); err != nil {
+		return err
+	}
+
+	if err := servingcert.RegisterPostStartHook(genericServer); err != nil {
 		return err
 	}
 
