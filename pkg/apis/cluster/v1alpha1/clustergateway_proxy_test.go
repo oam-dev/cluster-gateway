@@ -296,3 +296,47 @@ func TestGetImpersonationConfig(t *testing.T) {
 	ctx = request.WithUser(base, &user.DefaultInfo{Name: "tester", Groups: []string{"group-test"}})
 	require.Equal(t, clientgorest.ImpersonationConfig{UserName: "tester", Groups: []string{"group-test"}}, h.getImpersonationConfig(baseReq.WithContext(ctx)))
 }
+
+func TestClusterGatewayProxyRequestEscaper(t *testing.T) {
+	cases := []struct {
+		name          string
+		path          string
+		query         string
+		expectedQuery string
+	}{
+		{
+			name:          "dotted cluster name escapes dryRun",
+			path:          "/apis/cluster.core.oam.dev/v1alpha1/clustergateways/cluster.location/proxy",
+			query:         "dryRun=All",
+			expectedQuery: "__dryRun=All",
+		},
+		{
+			name:          "plain cluster name escapes dryRun",
+			path:          "/apis/cluster.core.oam.dev/v1alpha1/clustergateways/my-cluster/proxy",
+			query:         "dryRun=All",
+			expectedQuery: "__dryRun=All",
+		},
+		{
+			name:          "non-proxy path leaves the query alone",
+			path:          "/apis/cluster.core.oam.dev/v1alpha1/clustergateways/my-cluster",
+			query:         "dryRun=All",
+			expectedQuery: "dryRun=All",
+		},
+		{
+			name:          "dotted name without dryRun leaves the query alone",
+			path:          "/apis/cluster.core.oam.dev/v1alpha1/clustergateways/cluster.location/proxy",
+			query:         "fieldValidation=Strict",
+			expectedQuery: "fieldValidation=Strict",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var got *http.Request
+			delegate := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) { got = r })
+			req := httptest.NewRequest(http.MethodGet, c.path+"?"+c.query, nil)
+			NewClusterGatewayProxyRequestEscaper(delegate).ServeHTTP(httptest.NewRecorder(), req)
+			require.NotNil(t, got)
+			assert.Equal(t, c.expectedQuery, got.URL.RawQuery)
+		})
+	}
+}
