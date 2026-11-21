@@ -52,6 +52,41 @@ Images are also published to `ghcr.io/oam-dev/cluster-gateway`, for `linux/amd64
   - __ServiceAccountToken type secret__: https://github.com/oam-dev/cluster-gateway/blob/master/hack/samples/cluster-gateway-secret-serviceaccount-token.yaml
   - __X.509 certificate type secret__: https://github.com/oam-dev/cluster-gateway/blob/master/hack/samples/cluster-gateway-secret-x509.yaml
 
+### Direct Connection Mode (VirtualCluster)
+
+In the standard delegated mode, `cluster-gateway` acts as an aggregated APIServer (`APIService`). Client requests route through the host cluster's `kube-apiserver`, which proxies calls through `/apis/cluster.core.oam.dev/v1alpha1/clustergateways/<cluster-name>/proxy/...`. While this provides native RBAC alignment and cluster discovery via `kubectl`, routing all multi-cluster traffic through the root APIServer introduces delegation overhead and extra load on the hub control plane.
+
+To achieve higher throughput and lower latency, `cluster-gateway` provides a **Direct Connection Mode** using the `VirtualCluster` resource and `VirtualClusterClient`:
+
+1. **Reduced Latency**: Controllers and clients connect to `cluster-gateway`'s proxy endpoint directly rather than delegating through the Kubernetes APIServer, significantly reducing request roundtrip latency (e.g. from ~11ms to ~6ms) and decreasing the burden on the hub APIServer.
+2. **Simplified Network Topology**: Direct mode does not require mutual two-way connectivity between the hub `kube-apiserver` and `cluster-gateway`. Only `cluster-gateway` needs to be able to reach the hub APIServer.
+3. **Safe Metadata Exposure**: Unlike `ClusterGateway`, `VirtualCluster` exposes cluster metadata without returning sensitive raw credential secrets.
+4. **Local Control Plane Access**: `VirtualCluster` can automatically treat the hub control plane itself as the `local` cluster (configured via `--virtual-cluster-with-control-plane`, enabled by default).
+
+#### Using VirtualClusterClient in Go
+
+Go clients and controllers can interact with managed clusters directly using `VirtualClusterClient`:
+
+```go
+import (
+	clusterClient "github.com/oam-dev/cluster-gateway/pkg/apis/cluster/v1alpha1"
+)
+
+// Create a VirtualClusterClient from an existing controller-runtime client
+vcClient := clusterClient.NewVirtualClusterClient(k8sClient, secretNamespace, true)
+
+// Retrieve cluster metadata
+cluster, err := vcClient.Get(ctx, "cluster-1")
+if err != nil {
+	// handle error
+}
+
+// List all registered virtual clusters
+clusterList, err := vcClient.List(ctx)
+```
+
+In KubeVela, direct connection mode can be enabled with `--set multicluster.clusterGateway.direct=true` in `vela-core`.
+
 ### Performance
 
 Compile the e2e benchmark suite by:
