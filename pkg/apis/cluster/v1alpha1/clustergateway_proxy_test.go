@@ -23,23 +23,51 @@ import (
 	"k8s.io/component-base/featuregate"
 	k8stesting "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
-	contextutil "sigs.k8s.io/apiserver-runtime/pkg/util/context"
 )
 
 func TestProxyHandler(t *testing.T) {
 	cases := []struct {
-		name            string
-		parent          *fakeParentStorage
-		featureGate     featuregate.Feature
-		objName         string
-		inputOption     *ClusterGatewayProxyOptions
-		reqInfo         request.RequestInfo
-		query           string
-		expectedQuery   string
-		endpointPath    string
-		expectedFailure bool
-		errorAssertFunc func(t *testing.T, err error)
+		name                  string
+		parent                *fakeParentStorage
+		featureGate           featuregate.Feature
+		objName               string
+		inputOption           *ClusterGatewayProxyOptions
+		reqInfo               request.RequestInfo
+		query                 string
+		expectedQuery         string
+		endpointPath          string
+		inputAuthorization    string
+		expectedAuthorization string
+		expectedFailure       bool
+		errorAssertFunc       func(t *testing.T, err error)
 	}{
+		{
+			name: "configured credential overrides incoming authorization",
+			parent: &fakeParentStorage{
+				obj: &ClusterGateway{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "myName",
+					},
+					Spec: ClusterGatewaySpec{
+						Access: ClusterAccess{
+							Credential: &ClusterAccessCredential{
+								Type:                CredentialTypeServiceAccountToken,
+								ServiceAccountToken: "scoped-test-token",
+							},
+						},
+					},
+				},
+			},
+			objName: "myName",
+			inputOption: &ClusterGatewayProxyOptions{
+				Path: "/abc",
+			},
+			inputAuthorization:    "Bearer caller-test-token",
+			expectedAuthorization: "Bearer scoped-test-token",
+			reqInfo: request.RequestInfo{
+				Verb: "get",
+			},
+		},
 		{
 			name: "normal proxy should work",
 			parent: &fakeParentStorage{
@@ -161,10 +189,9 @@ func TestProxyHandler(t *testing.T) {
 			}
 
 			ctx := context.TODO()
-			ctx = contextutil.WithParentStorage(ctx, c.parent)
 			ctx = request.WithRequestInfo(ctx, &c.reqInfo)
 
-			gwProxy := &ClusterGatewayProxy{}
+			gwProxy := &ClusterGatewayProxy{Parent: c.parent}
 			handler, err := gwProxy.Connect(ctx, c.objName, c.inputOption, nil)
 			if c.expectedFailure {
 				if c.errorAssertFunc != nil {
@@ -177,14 +204,23 @@ func TestProxyHandler(t *testing.T) {
 			defer svr.Close()
 			path := "/foo"
 			targetPath := apiPrefix + c.objName + apiSuffix + path
-			resp, err := svr.Client().Get(svr.URL + targetPath + "?" + c.query)
-			assert.NoError(t, err)
+			proxyReq, err := http.NewRequest(http.MethodGet, svr.URL+targetPath+"?"+c.query, nil)
+			require.NoError(t, err)
+			if c.inputAuthorization != "" {
+				proxyReq.Header.Set("Authorization", c.inputAuthorization)
+			}
+			resp, err := svr.Client().Do(proxyReq)
+			require.NoError(t, err)
+			defer resp.Body.Close()
 			data, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			assert.Equal(t, text, string(data))
 			assert.Equal(t, 200, resp.StatusCode)
 			assert.Equal(t, gopath.Join(c.endpointPath, path), receivingReq.URL.Path)
 			assert.Equal(t, c.expectedQuery, receivingReq.URL.RawQuery)
+			if c.expectedAuthorization != "" {
+				assert.Equal(t, []string{c.expectedAuthorization}, receivingReq.Header.Values("Authorization"))
+			}
 		})
 	}
 }

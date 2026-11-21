@@ -6,7 +6,7 @@ on:
       - 'v*'
 env:
   # Common versions
-  GO_VERSION: '1.23'
+  GO_VERSION: '1.27.1'
   GO_REQUIRED_MIN_VERSION: ''
   GOPATH: '/home/runner/work/oamdev/cluster-gateway/go'
   GITHUB_REF: ${{ github.ref }}
@@ -18,10 +18,10 @@ defaults:
 jobs:
   env:
     name: prepare release env
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
@@ -32,100 +32,125 @@ jobs:
         run: |
           echo "MAJOR_RELEASE_VERSION=${RELEASE_VERSION%.*}" >> $GITHUB_ENV
           echo "TRIMED_RELEASE_VERSION=${RELEASE_VERSION#v}" >> $GITHUB_ENV
-      - name: verify chart version
-        run: |
-          sed -i 's/version: 0.1.0/version: ${{ env.TRIMED_RELEASE_VERSION }}/g' ./charts/cluster-gateway/Chart.yaml
-          sed -i 's/version: 0.1.0/version: ${{ env.TRIMED_RELEASE_VERSION }}/g' ./charts/addon-manager/Chart.yaml
-          cat ./charts/cluster-gateway/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
-          cat ./charts/addon-manager/Chart.yaml | grep -q 'version: ${{ env.TRIMED_RELEASE_VERSION }}'
     outputs:
       RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
       TRIMED_RELEASE_VERSION: ${{ env.TRIMED_RELEASE_VERSION }}
   image-multi-arch:
     name: multi arch image build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ env ]
+    env:
+      # Plain per-arch images: with buildx's default provenance attestation each tag is
+      # a manifest list, and `docker manifest create` below rejects lists.
+      BUILDX_NO_DEFAULT_ATTESTATIONS: 1
     strategy:
       matrix:
         arch: [ amd64, arm64 ]
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
           clean: true
       - name: install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
+      # The cluster-gateway image is published by build-image.yml (Docker Hub and
+      # GHCR, one multi-arch build); this workflow only publishes the addon-manager.
       - name: images multi arch
         run: |
           IMG_TAG=${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }} \
           OS=linux \
           ARCH=${{ matrix.arch }} \
-            make image
+            make ocm-addon-manager
       - name: Login docker.io
-        uses: docker/login-action@v3
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: push image multi arch
         run: |
-          docker push oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
           docker push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-${{ matrix.arch }}
   image-manifest:
     name: image-manifest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ env, image-multi-arch ]
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
           clean: 'true'
       - name: Login docker.io
-        uses: docker/login-action@v3
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: docker.io
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: create
         run: |
-          docker manifest create oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }} \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-arm64
           docker manifest create oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }} \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-arm64
       - name: annotate
         run: |
-          docker manifest annotate oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }} \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 --arch amd64
-          docker manifest annotate oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }} \
-            oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}-arm64 --arch arm64
           docker manifest annotate oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }} \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-amd64 --arch amd64
           docker manifest annotate oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }} \
             oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}-arm64 --arch arm64
       - name: push
         run: |
-          docker manifest push oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}
           docker manifest push oamdev/cluster-gateway-addon-manager:${{ needs.env.outputs.RELEASE_VERSION }}
   release:
     name: release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ env, image-manifest ]
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           path: go/src/oamdev/cluster-gateway
+      # Authenticated, so polling below isn't limited by Docker Hub's anonymous rate limit.
+      - name: Login docker.io
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      # build-image.yml publishes the cluster-gateway image for this tag in its own run;
+      # don't publish the release (and its charts) before that image exists.
+      - name: wait for the cluster-gateway image
+        env:
+          IMAGE: oamdev/cluster-gateway:${{ needs.env.outputs.RELEASE_VERSION }}
+        run: |
+          for i in $(seq 1 60); do
+            if docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
+              echo "${IMAGE} is published"
+              exit 0
+            fi
+            echo "waiting for ${IMAGE} (${i}/60)"
+            sleep 30
+          done
+          echo "::error::${IMAGE} was not published within 30 minutes"
+          exit 1
       - name: setup helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
+      # The charts are versioned 0.1.0 in the repository; package them with the tag's version, so a
+      # chart's default image (v<chart version>) is this release's image. This must run in the job
+      # that packages: each job has its own checkout.
+      - name: set the chart versions
+        env:
+          CHART_VERSION: ${{ needs.env.outputs.TRIMED_RELEASE_VERSION }}
+        run: |
+          for chart in ./charts/cluster-gateway ./charts/addon-manager; do
+            sed -i "s/^version: 0.1.0$/version: ${CHART_VERSION}/" "${chart}/Chart.yaml"
+            grep -qx "version: ${CHART_VERSION}" "${chart}/Chart.yaml"
+          done
       - name: chart package
         run: |
           if [ ! -d release ]; then
@@ -135,13 +160,34 @@ jobs:
           helm package ../charts/cluster-gateway/
           helm package ../charts/addon-manager/
           popd
+      # A tag with a pre-release suffix (v1.10.0-alpha.1) is published as a pre-release. Only the
+      # highest vX.Y.Z is marked Latest, as for the image's `latest` (build-image.yml): otherwise
+      # GitHub picks the release created last, so an alpha or a patch on an older line (v1.9.3 after
+      # v1.10.0) would become Latest.
+      - name: decide pre-release and Latest
+        id: kind
+        env:
+          TAG: ${{ needs.env.outputs.RELEASE_VERSION }}
+        run: |
+          set -euo pipefail
+          prerelease=false
+          if [[ ${TAG} == *-* ]]; then prerelease=true; fi
+          newest=$(git ls-remote --tags --refs origin 'v*' | sed 's|.*refs/tags/||' |
+            { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } | sort -V | tail -n1)
+          latest=false
+          if [[ ${TAG} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ && ${TAG} == "${newest}" ]]; then latest=true; fi
+          echo "Tag ${TAG}, newest release ${newest:-none}: prerelease=${prerelease}, Latest=${latest}"
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
+          echo "latest=${latest}" >> "${GITHUB_OUTPUT}"
       - name: publish release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         with:
           tag: ${{ needs.env.outputs.RELEASE_VERSION }}
           artifacts: "go/src/oamdev/cluster-gateway/release/*.tgz"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
+          prerelease: ${{ steps.kind.outputs.prerelease }}
+          makeLatest: ${{ steps.kind.outputs.latest }}
 #      lack secrets.PAT_TOKEN from ocm, commented now
 #      - name: submit charts to OCM chart repo
 #        uses: actions/github-script@v6

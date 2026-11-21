@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.23-alpine as builder
+FROM golang:1.27.3-alpine@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18 AS builder
 ARG OS
 ARG ARCH
 
@@ -34,9 +34,10 @@ RUN CGO_ENABLED=0 \
         -o patch \
         hack/patch/main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM alpine:3
+# Pinned by digest: the runtime's CA bundle is what the gateway trusts when it connects to managed
+# clusters, so a rebuild mustn't pick up whatever alpine:3 is that day. 3.24.4,
+# ca-certificates-bundle 20261020-r0 (the eMudhra CA fix).
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 WORKDIR /
 COPY --from=builder /workspace/apiserver /

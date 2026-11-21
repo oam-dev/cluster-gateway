@@ -1,0 +1,78 @@
+# Dependabot reads this file from the default branch only; target-branch covers the release branches.
+# The actions are pinned by commit SHA and the Dockerfiles' base images by digest, so without
+# these updates the pins would only age.
+version: 2
+updates:
+  # GitHub Actions: one grouped PR a week per branch.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: master
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: release-1.10
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: release-1.9
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Base images (golang builders, alpine runtime): new digests and patch versions only. A new
+  # Alpine or Go minor (alpine:3.25, golang:1.28) is a deliberate change on each branch.
+  - package-ecosystem: docker
+    directories: ["/cmd/apiserver", "/cmd/addon-manager"]
+    target-branch: master
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      base-images:
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directories: ["/cmd/apiserver", "/cmd/addon-manager"]
+    target-branch: release-1.10
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      base-images:
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directories: ["/cmd/apiserver", "/cmd/addon-manager"]
+    target-branch: release-1.9
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      base-images:
+        patterns: ["*"]
