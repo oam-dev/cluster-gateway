@@ -1,7 +1,7 @@
 ARG OS=linux
 ARG ARCH=amd64
 # Build the manager binary
-FROM golang:1.27.1@sha256:162be5298a40ed317005c8339c6de4d10d3eef336d66dc8e9259b03ab9d3a6d2 AS builder
+FROM golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS builder
 ARG OS
 ARG ARCH
 
@@ -32,7 +32,7 @@ RUN CGO_ENABLED=0 \
 # v3.13 is end of life. The image is built per architecture (make ocm-addon-manager ARCH=...), often
 # on another architecture's host: --platform picks ARCH's variant of the multi-arch base.
 ARG ARCH
-FROM --platform=linux/${ARCH} alpine:3.24@sha256:3f4d6b32e26703c6082839234f43769d5046b3ac7c910033911d1e71d8cd630a
+FROM --platform=linux/${ARCH} alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 WORKDIR /
 COPY --from=builder /workspace/addon-manager /
