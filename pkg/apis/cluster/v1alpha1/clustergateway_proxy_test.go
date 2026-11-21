@@ -296,3 +296,56 @@ func TestGetImpersonationConfig(t *testing.T) {
 	ctx = request.WithUser(base, &user.DefaultInfo{Name: "tester", Groups: []string{"group-test"}})
 	require.Equal(t, clientgorest.ImpersonationConfig{UserName: "tester", Groups: []string{"group-test"}}, h.getImpersonationConfig(baseReq.WithContext(ctx)))
 }
+
+func TestClusterGatewayProxyRequestEscaper(t *testing.T) {
+	testCases := []struct {
+		name          string
+		path          string
+		query         string
+		expectedQuery string
+	}{
+		{
+			name:          "standard cluster name escapes dryRun",
+			path:          apiPrefix + "my-cluster" + apiSuffix + "/api/v1/pods",
+			query:         "dryRun=All&foo=bar",
+			expectedQuery: "__dryRun=All&foo=bar",
+		},
+		{
+			name:          "cluster name with dots escapes dryRun",
+			path:          apiPrefix + "cluster.location" + apiSuffix + "/api/v1/pods",
+			query:         "dryRun=All&foo=bar",
+			expectedQuery: "__dryRun=All&foo=bar",
+		},
+		{
+			name:          "multi-level domain cluster name escapes dryRun",
+			path:          apiPrefix + "my.prod.cluster.k8s.local" + apiSuffix + "/api/v1/pods",
+			query:         "dryRun=All",
+			expectedQuery: "__dryRun=All",
+		},
+		{
+			name:          "non-matching path does not escape dryRun",
+			path:          "/api/v1/namespaces/default/pods",
+			query:         "dryRun=All",
+			expectedQuery: "dryRun=All",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var recordedReq *http.Request
+			delegate := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				recordedReq = req
+				w.WriteHeader(http.StatusOK)
+			})
+
+			escaper := NewClusterGatewayProxyRequestEscaper(delegate)
+			req := httptest.NewRequest(http.MethodGet, tc.path+"?"+tc.query, nil)
+			w := httptest.NewRecorder()
+
+			escaper.ServeHTTP(w, req)
+
+			require.NotNil(t, recordedReq)
+			assert.Equal(t, tc.expectedQuery, recordedReq.URL.RawQuery)
+		})
+	}
+}
