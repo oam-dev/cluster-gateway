@@ -1,7 +1,7 @@
 ARG OS=linux
 ARG ARCH=amd64
 # Build the manager binary
-FROM golang:1.27.3@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS builder
+FROM golang:1.27.4@sha256:205c7636d74e0ffbe3d007162df7d74f859f5a8c8322dfb9f907977686c126cf AS builder
 ARG OS
 ARG ARCH
 
