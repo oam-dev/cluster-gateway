@@ -61,11 +61,11 @@ To achieve higher throughput and lower latency, `cluster-gateway` provides a **D
 1. **Reduced Latency**: Controllers and clients connect to `cluster-gateway`'s proxy endpoint directly rather than delegating through the Kubernetes APIServer, significantly reducing request roundtrip latency (e.g. from ~11ms to ~6ms) and decreasing the burden on the hub APIServer.
 2. **Simplified Network Topology**: Direct mode does not require mutual two-way connectivity between the hub `kube-apiserver` and `cluster-gateway`. Only `cluster-gateway` needs to be able to reach the hub APIServer.
 3. **Safe Metadata Exposure**: Unlike `ClusterGateway`, `VirtualCluster` exposes cluster metadata without returning sensitive raw credential secrets.
-4. **Local Control Plane Access**: `VirtualCluster` can automatically treat the hub control plane itself as the `local` cluster (configured via `--virtual-cluster-with-control-plane`, enabled by default).
+4. **Local Control Plane Access**: `VirtualCluster` automatically treats the hub control plane itself as the `local` cluster.
 
 #### Using VirtualClusterClient in Go
 
-Go clients and controllers can interact with managed clusters directly using `VirtualClusterClient`:
+Go clients and controllers can retrieve managed-cluster metadata using `VirtualClusterClient`:
 
 ```go
 import (
@@ -83,6 +83,9 @@ if err != nil {
 
 // List all registered virtual clusters
 clusterList, err := vcClient.List(ctx)
+if err != nil {
+	// handle error
+}
 ```
 
 In KubeVela, direct connection mode can be enabled with `--set multicluster.clusterGateway.direct=true` in `vela-core`.
